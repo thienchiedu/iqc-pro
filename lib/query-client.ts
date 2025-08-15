@@ -1,6 +1,48 @@
 import { QueryClient } from "@tanstack/react-query"
-import { persistQueryClient } from "@tanstack/react-query-persist-client-core"
-import { createSyncStoragePersister } from "@tanstack/query-persist-client-local-storage"
+import { persistQueryClient } from "@tanstack/react-query-persist-client"
+
+// Custom localStorage persister implementation
+const createSyncStoragePersister = ({ storage, key, serialize, deserialize }: {
+  storage: Storage | undefined;
+  key: string;
+  serialize: (data: any) => string;
+  deserialize: (data: string) => any;
+}) => {
+  if (!storage) {
+    return {
+      persistClient: async () => {},
+      restoreClient: async () => null,
+      removeClient: async () => {},
+    }
+  }
+
+  return {
+    persistClient: async (client: any) => {
+      try {
+        const serializedData = serialize(client)
+        storage.setItem(key, serializedData)
+      } catch (error) {
+        console.warn(`Failed to persist client to ${key}:`, error)
+      }
+    },
+    restoreClient: async () => {
+      try {
+        const data = storage.getItem(key)
+        return data ? deserialize(data) : null
+      } catch (error) {
+        console.warn(`Failed to restore client from ${key}:`, error)
+        return null
+      }
+    },
+    removeClient: async () => {
+      try {
+        storage.removeItem(key)
+      } catch (error) {
+        console.warn(`Failed to remove client from ${key}:`, error)
+      }
+    },
+  }
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
