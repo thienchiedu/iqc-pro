@@ -4,6 +4,7 @@ import { useState } from "react"
 import { QCEntryForm, type QCEntryData } from "@/components/qc/qc-entry-form"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Header } from "@/components/layout/header"
+import { BackButton } from "@/components/ui/back-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -81,10 +82,16 @@ export default function QCEntryPage() {
       <div className="min-h-screen bg-background">
         <Header />
 
+        <div className="container mx-auto px-4 pt-4">
+          <BackButton />
+        </div>
+
         <main className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">QC Data Entry</h1>
-            <p className="text-muted-foreground">Enter quality control measurements for Westgard rules analysis</p>
+            <h1 className="text-3xl font-bold mb-2">Nhập dữ liệu QC</h1>
+            <p className="text-muted-foreground">
+              Nhập các phép đo kiểm soát chất lượng để phân tích theo quy tắc Westgard
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

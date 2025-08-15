@@ -9,24 +9,24 @@ C-Lab IQC Pro is a comprehensive Statistical Quality Control System for medical 
 ## Development Commands
 
 ### Development Server
-```bash
+\`\`\`bash
 npm run dev         # Start development server on http://localhost:3000
-```
+\`\`\`
 
 ### Build & Production
-```bash
+\`\`\`bash
 npm run build       # Build production bundle
 npm run start       # Start production server
 npm run lint        # Run ESLint (currently ignored during builds)
-```
+\`\`\`
 
 ### Package Management
 The project uses npm with a `pnpm-lock.yaml`, indicating pnpm may be preferred:
-```bash
+\`\`\`bash
 npm install --legacy-peer-deps  # Install with legacy peer deps (required for React 19 compatibility)
 pnpm install        # Install dependencies
 pnpm dev           # Start development
-```
+\`\`\`
 
 **Note**: Use `--legacy-peer-deps` flag with npm due to React 19 compatibility issues with some dependencies (particularly vaul@0.9.9).
 
@@ -44,7 +44,7 @@ pnpm dev           # Start development
 - **Type Safety**: Full TypeScript implementation
 
 ### Directory Structure
-```
+\`\`\`
 app/                     # Next.js App Router pages & API routes
 ├── api/                 # Backend API endpoints
 │   ├── auth/           # Authentication (login, verify)
@@ -74,7 +74,7 @@ lib/                   # Core business logic
 
 contexts/              # React Context providers
 └── auth-context.tsx   # Authentication state management
-```
+\`\`\`
 
 ## Core Domain Logic
 
@@ -128,7 +128,7 @@ The system uses a custom JWT authentication with mock user bypass currently enab
 ## Configuration Requirements
 
 ### Environment Variables
-```env
+\`\`\`env
 # Google Sheets Integration
 GOOGLE_SERVICE_ACCOUNT_KEY_FILE=path/to/service-account-key.json
 GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id
@@ -137,7 +137,7 @@ GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id
 JWT_SECRET=your-super-secret-jwt-key
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-nextauth-secret
-```
+\`\`\`
 
 ### Google Cloud Setup Required
 1. Create Google Cloud Project with Sheets API enabled

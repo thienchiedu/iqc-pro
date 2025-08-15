@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart3, Download, RefreshCw, TrendingUp, AlertTriangle } from "lucide-react"
 import { format } from "date-fns"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function QCMonitorPage() {
   const [filters, setFilters] = useState<QCFilters>({
@@ -153,21 +154,27 @@ export default function QCMonitorPage() {
       <div className="min-h-screen bg-background">
         <Header />
 
+        <div className="container mx-auto px-4 pt-4">
+          <BackButton />
+        </div>
+
         <main className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold mb-2">QC Monitor</h1>
-                <p className="text-muted-foreground">Levey-Jennings charts and quality control data visualization</p>
+                <h1 className="text-3xl font-bold mb-2">Giám sát QC</h1>
+                <p className="text-muted-foreground">
+                  Biểu đồ Levey-Jennings và trực quan hóa dữ liệu kiểm soát chất lượng
+                </p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={fetchQCData} disabled={loading}>
                   <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                  Refresh
+                  Làm mới
                 </Button>
                 <Button variant="outline" onClick={exportData} disabled={qcData.length === 0}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export CSV
+                  Xuất CSV
                 </Button>
               </div>
             </div>
@@ -175,9 +182,9 @@ export default function QCMonitorPage() {
 
           <Tabs defaultValue="chart" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="chart">Chart View</TabsTrigger>
-              <TabsTrigger value="data">Data Table</TabsTrigger>
-              <TabsTrigger value="statistics">Statistics</TabsTrigger>
+              <TabsTrigger value="chart">Xem biểu đồ</TabsTrigger>
+              <TabsTrigger value="data">Bảng dữ liệu</TabsTrigger>
+              <TabsTrigger value="statistics">Thống kê</TabsTrigger>
             </TabsList>
 
             <TabsContent value="chart" className="space-y-6">
@@ -200,7 +207,7 @@ export default function QCMonitorPage() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">Total Points</p>
+                            <p className="text-sm text-muted-foreground">Tổng điểm</p>
                             <p className="text-2xl font-bold">{qcData.length}</p>
                           </div>
                           <BarChart3 className="h-8 w-8 text-blue-500" />
@@ -212,7 +219,7 @@ export default function QCMonitorPage() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">In-Control</p>
+                            <p className="text-sm text-muted-foreground">Trong kiểm soát</p>
                             <p className="text-2xl font-bold text-green-600">{inControlCount}</p>
                           </div>
                           <TrendingUp className="h-8 w-8 text-green-500" />
@@ -224,7 +231,7 @@ export default function QCMonitorPage() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">Warnings</p>
+                            <p className="text-sm text-muted-foreground">Cảnh báo</p>
                             <p className="text-2xl font-bold text-yellow-600">{warningCount}</p>
                           </div>
                           <AlertTriangle className="h-8 w-8 text-yellow-500" />
@@ -236,7 +243,7 @@ export default function QCMonitorPage() {
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">Violations</p>
+                            <p className="text-sm text-muted-foreground">Vi phạm</p>
                             <p className="text-2xl font-bold text-red-600">{violationCount}</p>
                           </div>
                           <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -270,7 +277,7 @@ export default function QCMonitorPage() {
                   ) : (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Levey-Jennings Chart</CardTitle>
+                        <CardTitle>Biểu đồ Levey-Jennings</CardTitle>
                         <CardDescription>{getFilterSummary()}</CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -278,8 +285,8 @@ export default function QCMonitorPage() {
                           <AlertTriangle className="h-4 w-4" />
                           <AlertDescription>
                             {qcData.length === 0
-                              ? "No data available for the selected criteria."
-                              : "Please select specific analyte, level, instrument, and lot to display control limits."}
+                              ? "Không có dữ liệu cho tiêu chí đã chọn."
+                              : "Vui lòng chọn analyte, level, thiết bị và lô cụ thể để hiển thị giới hạn kiểm soát."}
                           </AlertDescription>
                         </Alert>
                       </CardContent>
@@ -292,8 +299,8 @@ export default function QCMonitorPage() {
             <TabsContent value="data" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>QC Data Table</CardTitle>
-                  <CardDescription>Detailed view of quality control measurements</CardDescription>
+                  <CardTitle>Bảng dữ liệu QC</CardTitle>
+                  <CardDescription>Xem chi tiết các phép đo kiểm soát chất lượng</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {qcData.length > 0 ? (
@@ -301,20 +308,20 @@ export default function QCMonitorPage() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left p-2">Point</th>
-                            <th className="text-left p-2">Date/Time</th>
-                            <th className="text-left p-2">Value</th>
+                            <th className="text-left p-2">Điểm</th>
+                            <th className="text-left p-2">Ngày/Giờ</th>
+                            <th className="text-left p-2">Giá trị</th>
                             <th className="text-left p-2">Z-Score</th>
-                            <th className="text-left p-2">Status</th>
+                            <th className="text-left p-2">Trạng thái</th>
                             <th className="text-left p-2">Run ID</th>
-                            <th className="text-left p-2">Violations</th>
+                            <th className="text-left p-2">Vi phạm</th>
                           </tr>
                         </thead>
                         <tbody>
                           {qcData.map((point, index) => (
                             <tr key={point.id} className="border-b hover:bg-gray-50">
                               <td className="p-2">{index + 1}</td>
-                              <td className="p-2">{format(new Date(point.timestamp), "MM/dd/yyyy HH:mm")}</td>
+                              <td className="p-2">{format(new Date(point.timestamp), "dd/MM/yyyy HH:mm")}</td>
                               <td className="p-2 font-mono">{point.value.toFixed(3)}</td>
                               <td className="p-2 font-mono">
                                 <span className={Math.abs(point.z) >= 2 ? "text-red-600" : "text-green-600"}>
@@ -350,7 +357,7 @@ export default function QCMonitorPage() {
                   ) : (
                     <Alert>
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>No data available for the selected criteria.</AlertDescription>
+                      <AlertDescription>Không có dữ liệu cho tiêu chí đã chọn.</AlertDescription>
                     </Alert>
                   )}
                 </CardContent>
@@ -361,34 +368,34 @@ export default function QCMonitorPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Data Summary</CardTitle>
+                    <CardTitle>Tóm tắt dữ liệu</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {qcData.length > 0 ? (
                       <>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Total Points:</span>
+                            <span className="text-muted-foreground">Tổng điểm:</span>
                             <span className="ml-2 font-medium">{qcData.length}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Date Range:</span>
+                            <span className="text-muted-foreground">Khoảng thời gian:</span>
                             <span className="ml-2 font-medium">
                               {qcData.length > 0 &&
-                                `${format(new Date(qcData[0].timestamp), "MM/dd")} - ${format(
+                                `${format(new Date(qcData[0].timestamp), "dd/MM")} - ${format(
                                   new Date(qcData[qcData.length - 1].timestamp),
-                                  "MM/dd",
+                                  "dd/MM",
                                 )}`}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">In-Control:</span>
+                            <span className="text-muted-foreground">Trong kiểm soát:</span>
                             <span className="ml-2 font-medium text-green-600">
                               {inControlCount} ({((inControlCount / qcData.length) * 100).toFixed(1)}%)
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Violations:</span>
+                            <span className="text-muted-foreground">Vi phạm:</span>
                             <span className="ml-2 font-medium text-red-600">
                               {violationCount} ({((violationCount / qcData.length) * 100).toFixed(1)}%)
                             </span>
@@ -396,7 +403,7 @@ export default function QCMonitorPage() {
                         </div>
                       </>
                     ) : (
-                      <p className="text-muted-foreground">No data available</p>
+                      <p className="text-muted-foreground">Không có dữ liệu</p>
                     )}
                   </CardContent>
                 </Card>
@@ -404,12 +411,12 @@ export default function QCMonitorPage() {
                 {controlLimits && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Control Limits</CardTitle>
+                      <CardTitle>Giới hạn kiểm soát</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <span className="text-muted-foreground">Mean:</span>
+                          <span className="text-muted-foreground">Trung bình:</span>
                           <span className="ml-2 font-mono">{controlLimits.mean.toFixed(3)}</span>
                         </div>
                         <div>

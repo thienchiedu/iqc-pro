@@ -49,12 +49,12 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
   const validateForm = (): boolean => {
     const newErrors: string[] = []
 
-    if (!formData.analyte) newErrors.push("Analyte is required")
-    if (!formData.level) newErrors.push("Level is required")
-    if (!formData.instrument_id) newErrors.push("Instrument is required")
-    if (!formData.lot_id) newErrors.push("Lot ID is required")
-    if (!formData.value || formData.value <= 0) newErrors.push("Valid value is required")
-    if (!formData.run_id) newErrors.push("Run ID is required")
+    if (!formData.analyte) newErrors.push("Chất phân tích là bắt buộc")
+    if (!formData.level) newErrors.push("Mức độ là bắt buộc")
+    if (!formData.instrument_id) newErrors.push("Thiết bị là bắt buộc")
+    if (!formData.lot_id) newErrors.push("Mã lô là bắt buộc")
+    if (!formData.value || formData.value <= 0) newErrors.push("Giá trị hợp lệ là bắt buộc")
+    if (!formData.run_id) newErrors.push("Mã chạy là bắt buộc")
 
     setErrors(newErrors)
     return newErrors.length === 0
@@ -94,19 +94,19 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          QC Data Entry
+          Nhập Dữ Liệu QC
         </CardTitle>
-        <CardDescription>Enter quality control measurement data for analysis</CardDescription>
+        <CardDescription>Nhập dữ liệu đo lường kiểm soát chất lượng để phân tích</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Test Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="analyte">Analyte *</Label>
+              <Label htmlFor="analyte">Chất phân tích *</Label>
               <Select value={formData.analyte} onValueChange={(value) => handleInputChange("analyte", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select analyte" />
+                  <SelectValue placeholder="Chọn chất phân tích" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Glucose">Glucose</SelectItem>
@@ -124,15 +124,15 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="level">QC Level *</Label>
+              <Label htmlFor="level">Mức QC *</Label>
               <Select value={formData.level} onValueChange={(value) => handleInputChange("level", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select level" />
+                  <SelectValue placeholder="Chọn mức độ" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="L1">L1 (Low)</SelectItem>
-                  <SelectItem value="L2">L2 (Normal)</SelectItem>
-                  <SelectItem value="L3">L3 (High)</SelectItem>
+                  <SelectItem value="L1">L1 (Thấp)</SelectItem>
+                  <SelectItem value="L2">L2 (Bình thường)</SelectItem>
+                  <SelectItem value="L3">L3 (Cao)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -141,13 +141,13 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
           {/* Instrument and Lot */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="instrument_id">Instrument *</Label>
+              <Label htmlFor="instrument_id">Thiết bị *</Label>
               <Select
                 value={formData.instrument_id}
                 onValueChange={(value) => handleInputChange("instrument_id", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select instrument" />
+                  <SelectValue placeholder="Chọn thiết bị" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="COBAS_C311">Cobas C311</SelectItem>
@@ -160,57 +160,57 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lot_id">QC Lot ID *</Label>
+              <Label htmlFor="lot_id">Mã Lô QC *</Label>
               <Input
                 id="lot_id"
                 value={formData.lot_id}
                 onChange={(e) => handleInputChange("lot_id", e.target.value)}
-                placeholder="Enter lot ID"
+                placeholder="Nhập mã lô"
               />
             </div>
           </div>
 
           {/* Measurement Value */}
           <div className="space-y-2">
-            <Label htmlFor="value">Measured Value *</Label>
+            <Label htmlFor="value">Giá Trị Đo *</Label>
             <Input
               id="value"
               type="number"
               step="0.01"
               value={formData.value || ""}
               onChange={(e) => handleInputChange("value", e.target.value)}
-              placeholder="Enter measured value"
+              placeholder="Nhập giá trị đo"
             />
           </div>
 
           {/* Run Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="run_id">Run ID *</Label>
+              <Label htmlFor="run_id">Mã Chạy *</Label>
               <Input
                 id="run_id"
                 value={formData.run_id}
                 onChange={(e) => handleInputChange("run_id", e.target.value)}
-                placeholder="e.g., RUN001"
+                placeholder="vd: RUN001"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="shift">Shift</Label>
+              <Label htmlFor="shift">Ca Làm</Label>
               <Select value={formData.shift} onValueChange={(value) => handleInputChange("shift", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select shift" />
+                  <SelectValue placeholder="Chọn ca làm" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="A">Shift A (Morning)</SelectItem>
-                  <SelectItem value="B">Shift B (Afternoon)</SelectItem>
-                  <SelectItem value="C">Shift C (Night)</SelectItem>
+                  <SelectItem value="A">Ca A (Sáng)</SelectItem>
+                  <SelectItem value="B">Ca B (Chiều)</SelectItem>
+                  <SelectItem value="C">Ca C (Tối)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="timestamp">Date & Time</Label>
+              <Label htmlFor="timestamp">Ngày & Giờ</Label>
               <Input
                 id="timestamp"
                 type="datetime-local"
@@ -223,22 +223,22 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
           {/* Additional Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="operator">Operator</Label>
+              <Label htmlFor="operator">Người Thực Hiện</Label>
               <Input
                 id="operator"
                 value={formData.operator}
                 onChange={(e) => handleInputChange("operator", e.target.value)}
-                placeholder="Operator name"
+                placeholder="Tên người thực hiện"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="comment">Comment</Label>
+              <Label htmlFor="comment">Ghi Chú</Label>
               <Textarea
                 id="comment"
                 value={formData.comment}
                 onChange={(e) => handleInputChange("comment", e.target.value)}
-                placeholder="Optional comment"
+                placeholder="Ghi chú tùy chọn"
                 rows={3}
               />
             </div>
@@ -278,10 +278,10 @@ export function QCEntryForm({ onSubmit, loading = false }: QCEntryFormProps) {
                 setErrors([])
               }}
             >
-              Clear
+              Xóa
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Processing..." : "Submit QC Data"}
+              {loading ? "Đang xử lý..." : "Gửi Dữ Liệu QC"}
             </Button>
           </div>
         </form>

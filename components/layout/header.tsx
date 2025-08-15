@@ -28,27 +28,27 @@ export function Header() {
 
           <nav className="flex items-center space-x-4">
             <Button variant="ghost" asChild>
-              <Link href="/qc-monitor">QC Monitor</Link>
+              <Link href="/qc-monitor">Giám Sát QC</Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link href="/qc-entry">QC Entry</Link>
+              <Link href="/qc-entry">Nhập Dữ Liệu QC</Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link href="/violations">Violations</Link>
+              <Link href="/violations">Vi Phạm</Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link href="/westgard-rules">Westgard Rules</Link>
+              <Link href="/westgard-rules">Quy Tắc Westgard</Link>
             </Button>
             {hasRole("manager") && (
               <>
                 <Button variant="ghost" asChild>
-                  <Link href="/config">Configuration</Link>
+                  <Link href="/config">Cấu Hình</Link>
                 </Button>
                 <Button variant="ghost" asChild>
-                  <Link href="/lot-setup">Lot Setup</Link>
+                  <Link href="/lot-setup">Thiết Lập Lô</Link>
                 </Button>
                 <Button variant="ghost" asChild>
-                  <Link href="/users">Users</Link>
+                  <Link href="/users">Người Dùng</Link>
                 </Button>
               </>
             )}
@@ -71,13 +71,13 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">
                     <Settings className="h-4 w-4 mr-2" />
-                    Profile Settings
+                    Cài Đặt Hồ Sơ
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
+                  Đăng Xuất
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

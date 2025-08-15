@@ -26,10 +26,10 @@ export function LoginForm() {
     try {
       const success = await login(username, password)
       if (!success) {
-        setError("Invalid username or password")
+        setError("Tên đăng nhập hoặc mật khẩu không đúng")
       }
     } catch (error) {
-      setError("Login failed. Please try again.")
+      setError("Đăng nhập thất bại. Vui lòng thử lại.")
     } finally {
       setLoading(false)
     }
@@ -43,13 +43,13 @@ export function LoginForm() {
             <Activity className="h-8 w-8 text-primary mr-2" />
             <h1 className="text-2xl font-bold">C-Lab IQC Pro</h1>
           </div>
-          <CardTitle>Sign In</CardTitle>
-          <CardDescription>Enter your credentials to access the Quality Control system</CardDescription>
+          <CardTitle>Đăng Nhập</CardTitle>
+          <CardDescription>Nhập thông tin đăng nhập để truy cập hệ thống Kiểm soát Chất lượng</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Tên đăng nhập</Label>
               <Input
                 id="username"
                 type="text"
@@ -60,7 +60,7 @@ export function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mật khẩu</Label>
               <Input
                 id="password"
                 type="password"
@@ -76,7 +76,7 @@ export function LoginForm() {
               </Alert>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
             </Button>
           </form>
         </CardContent>

@@ -54,21 +54,21 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Filter className="h-5 w-5" />
-          QC Data Filters
+          Bộ Lọc Dữ Liệu QC
         </CardTitle>
-        <CardDescription>Filter and customize the QC data display</CardDescription>
+        <CardDescription>Lọc và tùy chỉnh hiển thị dữ liệu QC</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Primary Filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="analyte">Analyte</Label>
+            <Label htmlFor="analyte">Chất phân tích</Label>
             <Select value={filters.analyte} onValueChange={(value) => handleFilterChange("analyte", value)}>
               <SelectTrigger>
-                <SelectValue placeholder="All analytes" />
+                <SelectValue placeholder="Tất cả chất phân tích" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All analytes</SelectItem>
+                <SelectItem value="all">Tất cả chất phân tích</SelectItem>
                 <SelectItem value="Glucose">Glucose</SelectItem>
                 <SelectItem value="Cholesterol">Cholesterol</SelectItem>
                 <SelectItem value="Triglycerides">Triglycerides</SelectItem>
@@ -84,28 +84,28 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="level">QC Level</Label>
+            <Label htmlFor="level">Mức QC</Label>
             <Select value={filters.level} onValueChange={(value) => handleFilterChange("level", value)}>
               <SelectTrigger>
-                <SelectValue placeholder="All levels" />
+                <SelectValue placeholder="Tất cả mức độ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All levels</SelectItem>
-                <SelectItem value="L1">L1 (Low)</SelectItem>
-                <SelectItem value="L2">L2 (Normal)</SelectItem>
-                <SelectItem value="L3">L3 (High)</SelectItem>
+                <SelectItem value="all">Tất cả mức độ</SelectItem>
+                <SelectItem value="L1">L1 (Thấp)</SelectItem>
+                <SelectItem value="L2">L2 (Bình thường)</SelectItem>
+                <SelectItem value="L3">L3 (Cao)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="instrument_id">Instrument</Label>
+            <Label htmlFor="instrument_id">Thiết bị</Label>
             <Select value={filters.instrument_id} onValueChange={(value) => handleFilterChange("instrument_id", value)}>
               <SelectTrigger>
-                <SelectValue placeholder="All instruments" />
+                <SelectValue placeholder="Tất cả thiết bị" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All instruments</SelectItem>
+                <SelectItem value="all">Tất cả thiết bị</SelectItem>
                 <SelectItem value="COBAS_C311">Cobas C311</SelectItem>
                 <SelectItem value="COBAS_C501">Cobas C501</SelectItem>
                 <SelectItem value="ARCHITECT_C4000">Architect C4000</SelectItem>
@@ -116,12 +116,12 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="lot_id">QC Lot ID</Label>
+            <Label htmlFor="lot_id">Mã Lô QC</Label>
             <Input
               id="lot_id"
               value={filters.lot_id}
               onChange={(e) => handleFilterChange("lot_id", e.target.value)}
-              placeholder="Enter lot ID"
+              placeholder="Nhập mã lô"
             />
           </div>
         </div>
@@ -132,7 +132,7 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Date Range</Label>
+              <Label>Khoảng Thời Gian</Label>
               <DatePickerWithRange
                 date={filters.dateRange}
                 onDateChange={(dateRange) => handleFilterChange("dateRange", dateRange)}
@@ -140,7 +140,7 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="maxPoints">Max Data Points</Label>
+              <Label htmlFor="maxPoints">Số Điểm Dữ Liệu Tối Đa</Label>
               <Select
                 value={filters.maxPoints.toString()}
                 onValueChange={(value) => handleFilterChange("maxPoints", Number.parseInt(value))}
@@ -149,11 +149,11 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="50">50 points</SelectItem>
-                  <SelectItem value="100">100 points</SelectItem>
-                  <SelectItem value="200">200 points</SelectItem>
-                  <SelectItem value="500">500 points</SelectItem>
-                  <SelectItem value="1000">1000 points</SelectItem>
+                  <SelectItem value="50">50 điểm</SelectItem>
+                  <SelectItem value="100">100 điểm</SelectItem>
+                  <SelectItem value="200">200 điểm</SelectItem>
+                  <SelectItem value="500">500 điểm</SelectItem>
+                  <SelectItem value="1000">1000 điểm</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -161,11 +161,11 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
 
           <div className="space-y-4">
             <div className="space-y-3">
-              <Label>Display Options</Label>
+              <Label>Tùy Chọn Hiển Thị</Label>
 
               <div className="flex items-center justify-between">
                 <Label htmlFor="showViolationsOnly" className="text-sm font-normal">
-                  Show violations only
+                  Chỉ hiển thị vi phạm
                 </Label>
                 <Switch
                   id="showViolationsOnly"
@@ -176,7 +176,7 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
 
               <div className="flex items-center justify-between">
                 <Label htmlFor="showTrend" className="text-sm font-normal">
-                  Show trend line
+                  Hiển thị đường xu hướng
                 </Label>
                 <Switch
                   id="showTrend"
@@ -194,11 +194,11 @@ export function QCMonitorFilters({ filters, onFiltersChange, onApplyFilters, loa
         <div className="flex gap-2">
           <Button onClick={onApplyFilters} disabled={loading} className="flex-1">
             <Search className="h-4 w-4 mr-2" />
-            {loading ? "Loading..." : "Apply Filters"}
+            {loading ? "Đang tải..." : "Áp Dụng Bộ Lọc"}
           </Button>
           <Button variant="outline" onClick={resetFilters} disabled={loading}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Reset
+            Đặt Lại
           </Button>
         </div>
       </CardContent>

@@ -150,7 +150,7 @@ export function AnalyteConfig() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this analyte?")) return
+    if (!confirm("Bạn có chắc chắn muốn xóa chất phân tích này?")) return
 
     try {
       const response = await fetch(`/api/config/analytes/${id}`, {
@@ -159,15 +159,15 @@ export function AnalyteConfig() {
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "Analyte deleted successfully",
+          title: "Thành công",
+          description: "Đã xóa chất phân tích thành công",
         })
         fetchAnalytes()
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete analyte",
+        title: "Lỗi",
+        description: "Không thể xóa chất phân tích",
         variant: "destructive",
       })
     }
@@ -178,25 +178,25 @@ export function AnalyteConfig() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Analyte Configuration</CardTitle>
-            <CardDescription>Manage analytes, their units, and reference ranges</CardDescription>
+            <CardTitle>Cấu Hình Chất Phân Tích</CardTitle>
+            <CardDescription>Quản lý các chất phân tích, đơn vị và khoảng tham chiếu</CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => resetForm()}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Analyte
+                Thêm Chất Phân Tích
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingAnalyte ? "Edit Analyte" : "Add New Analyte"}</DialogTitle>
-                <DialogDescription>Configure analyte parameters and reference ranges</DialogDescription>
+                <DialogTitle>{editingAnalyte ? "Chỉnh Sửa Chất Phân Tích" : "Thêm Chất Phân Tích Mới"}</DialogTitle>
+                <DialogDescription>Cấu hình thông số chất phân tích và khoảng tham chiếu</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Analyte Name</Label>
+                    <Label htmlFor="name">Tên Chất Phân Tích</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -205,7 +205,7 @@ export function AnalyteConfig() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="unit">Unit</Label>
+                    <Label htmlFor="unit">Đơn Vị</Label>
                     <Input
                       id="unit"
                       value={formData.unit}
@@ -215,29 +215,29 @@ export function AnalyteConfig() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">Danh Mục</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder="Chọn danh mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="chemistry">Chemistry</SelectItem>
-                      <SelectItem value="hematology">Hematology</SelectItem>
-                      <SelectItem value="immunology">Immunology</SelectItem>
-                      <SelectItem value="microbiology">Microbiology</SelectItem>
-                      <SelectItem value="coagulation">Coagulation</SelectItem>
+                      <SelectItem value="chemistry">Hóa sinh</SelectItem>
+                      <SelectItem value="hematology">Huyết học</SelectItem>
+                      <SelectItem value="immunology">Miễn dịch</SelectItem>
+                      <SelectItem value="microbiology">Vi sinh</SelectItem>
+                      <SelectItem value="coagulation">Đông máu</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Normal Range</Label>
+                    <Label>Khoảng Bình Thường</Label>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Min"
+                        placeholder="Tối thiểu"
                         type="number"
                         step="any"
                         value={formData.normalMin}
@@ -245,7 +245,7 @@ export function AnalyteConfig() {
                         required
                       />
                       <Input
-                        placeholder="Max"
+                        placeholder="Tối đa"
                         type="number"
                         step="any"
                         value={formData.normalMax}
@@ -255,10 +255,10 @@ export function AnalyteConfig() {
                     </div>
                   </div>
                   <div>
-                    <Label>Critical Range</Label>
+                    <Label>Khoảng Nguy Hiểm</Label>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Min"
+                        placeholder="Tối thiểu"
                         type="number"
                         step="any"
                         value={formData.criticalMin}
@@ -266,7 +266,7 @@ export function AnalyteConfig() {
                         required
                       />
                       <Input
-                        placeholder="Max"
+                        placeholder="Tối đa"
                         type="number"
                         step="any"
                         value={formData.criticalMax}
@@ -277,7 +277,7 @@ export function AnalyteConfig() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="decimalPlaces">Decimal Places</Label>
+                  <Label htmlFor="decimalPlaces">Số Chữ Số Thập Phân</Label>
                   <Select
                     value={formData.decimalPlaces}
                     onValueChange={(value) => setFormData({ ...formData, decimalPlaces: value })}
@@ -296,9 +296,9 @@ export function AnalyteConfig() {
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancel
+                    Hủy
                   </Button>
-                  <Button type="submit">{editingAnalyte ? "Update" : "Create"} Analyte</Button>
+                  <Button type="submit">{editingAnalyte ? "Cập Nhật" : "Tạo"} Chất Phân Tích</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -309,13 +309,13 @@ export function AnalyteConfig() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Normal Range</TableHead>
-              <TableHead>Critical Range</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Tên</TableHead>
+              <TableHead>Đơn Vị</TableHead>
+              <TableHead>Danh Mục</TableHead>
+              <TableHead>Khoảng Bình Thường</TableHead>
+              <TableHead>Khoảng Nguy Hiểm</TableHead>
+              <TableHead>Trạng Thái</TableHead>
+              <TableHead>Thao Tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -334,7 +334,7 @@ export function AnalyteConfig() {
                 </TableCell>
                 <TableCell>
                   <Badge variant={analyte.isActive ? "default" : "secondary"}>
-                    {analyte.isActive ? "Active" : "Inactive"}
+                    {analyte.isActive ? "Hoạt động" : "Không hoạt động"}
                   </Badge>
                 </TableCell>
                 <TableCell>

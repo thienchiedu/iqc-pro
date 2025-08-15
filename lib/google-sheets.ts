@@ -19,6 +19,14 @@ export interface QCPoint {
   status?: "in-control" | "warning" | "reject"
   operator?: string
   comment?: string
+  shift_flag?: boolean
+  trend_flag?: boolean
+  cusum_pos?: number
+  cusum_neg?: number
+  violations_matrix_json?: string
+  root_cause?: string
+  corrective_action?: string
+  conclusion?: string
 }
 
 export interface QCLimit {
@@ -58,6 +66,26 @@ export interface WestgardConfig {
   enable_10x_reject: boolean
   action_default: "reject" | "warning"
   notes?: string
+  enable_2of3_2s_reject?: boolean
+  enable_3_1s_reject?: boolean
+  enable_6x_reject?: boolean
+  enable_9x_reject?: boolean
+  enable_7T_reject?: boolean
+  n_per_run?: number
+  enable_cusum?: boolean
+  cusum_K?: number
+  cusum_H?: number
+}
+
+export interface RuleSetting {
+  rule_code: string
+  rule_name: string
+  description: string
+  is_active: boolean
+  is_extension?: boolean
+  default_enabled: boolean
+  severity: "warning" | "reject"
+  category: "westgard" | "extension"
 }
 
 export interface Violation {
@@ -81,12 +109,12 @@ export class GoogleSheetsService {
 
   constructor(spreadsheetId: string) {
     this.spreadsheetId = spreadsheetId
-    
+
     // Use credentials from environment variables if available
     if (process.env.GOOGLE_SHEETS_PRIVATE_KEY && process.env.GOOGLE_SHEETS_CLIENT_EMAIL) {
       this.auth = new GoogleAuth({
         credentials: {
-          private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, "\n"),
           client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
         },
         scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -126,7 +154,7 @@ export class GoogleSheetsService {
       console.log(`[v0] Sheet '${sheetName}' created successfully`)
     } catch (error: any) {
       // If sheet already exists, ignore the error
-      if (error.message?.includes('already exists')) {
+      if (error.message?.includes("already exists")) {
         console.log(`[v0] Sheet '${sheetName}' already exists, skipping creation`)
       } else {
         console.error(`Error creating sheet ${sheetName}:`, error)
@@ -141,7 +169,7 @@ export class GoogleSheetsService {
       await this.readSheet(sheetName, "A1:A1")
     } catch (error: any) {
       // If sheet doesn't exist, create it
-      if (error.message?.includes('Unable to parse range') || error.message?.includes('not found')) {
+      if (error.message?.includes("Unable to parse range") || error.message?.includes("not found")) {
         await this.createSheet(sheetName)
       } else {
         throw error
@@ -221,7 +249,14 @@ export class GoogleSheetsService {
     let points = rows.map((row) => {
       const point: any = {}
       headers.forEach((header, index) => {
-        point[header] = row[index] || ""
+        const value = row[index] || ""
+        if (["shift_flag", "trend_flag"].includes(header)) {
+          point[header] = value.toLowerCase() === "true"
+        } else if (["cusum_pos", "cusum_neg"].includes(header)) {
+          point[header] = value ? Number.parseFloat(value) : 0
+        } else {
+          point[header] = value
+        }
       })
       return point as QCPoint
     })
@@ -266,10 +301,61 @@ export class GoogleSheetsService {
       "status",
       "operator",
       "comment",
+      "shift_flag",
+      "trend_flag",
+      "cusum_pos",
+      "cusum_neg",
+      "violations_matrix_json",
+      "root_cause",
+      "corrective_action",
+      "conclusion",
     ]
 
-    const row = headers.map((header) => point[header as keyof QCPoint] || "")
+    const row = headers.map((header) => {
+      const value = point[header as keyof QCPoint]
+      return value !== undefined ? value.toString() : ""
+    })
     await this.appendSheet("qc_points", [row])
+  }
+
+  async updateQCPointRCA(
+    pointId: string,
+    rca: {
+      root_cause?: string
+      corrective_action?: string
+      conclusion?: string
+    },
+  ): Promise<void> {
+    // This would require finding the specific row and updating it
+    // For now, we'll implement a simple approach by reading all data, finding the row, and updating
+    const data = await this.readSheet("qc_points")
+    if (data.length === 0) return
+
+    const headers = data[0]
+    const rows = data.slice(1)
+
+    // Find the row with matching ID (assuming first column is ID or we have an ID column)
+    const rowIndex = rows.findIndex((row) => row[0] === pointId)
+    if (rowIndex === -1) return
+
+    // Update the specific fields
+    const updatedRow = [...rows[rowIndex]]
+    if (rca.root_cause !== undefined) {
+      const rcIndex = headers.indexOf("root_cause")
+      if (rcIndex !== -1) updatedRow[rcIndex] = rca.root_cause
+    }
+    if (rca.corrective_action !== undefined) {
+      const caIndex = headers.indexOf("corrective_action")
+      if (caIndex !== -1) updatedRow[caIndex] = rca.corrective_action
+    }
+    if (rca.conclusion !== undefined) {
+      const conclusionIndex = headers.indexOf("conclusion")
+      if (conclusionIndex !== -1) updatedRow[conclusionIndex] = rca.conclusion
+    }
+
+    // Write back the updated row
+    const range = `qc_points!A${rowIndex + 2}:${String.fromCharCode(65 + headers.length - 1)}${rowIndex + 2}`
+    await this.writeSheet("qc_points", [updatedRow], range)
   }
 
   // QC Limits operations
@@ -289,8 +375,9 @@ export class GoogleSheetsService {
       const limit: any = {}
       headers.forEach((header, index) => {
         const value = row[index] || ""
-        // Convert numeric fields
-        if (
+        if (header.startsWith("enable_") || header === "is_locked") {
+          limit[header] = value.toLowerCase() === "true"
+        } else if (
           [
             "mean_lab",
             "sd_lab",
@@ -305,8 +392,10 @@ export class GoogleSheetsService {
           ].includes(header)
         ) {
           limit[header] = value ? Number.parseFloat(value) : 0
-        } else if (header === "is_locked") {
-          limit[header] = value.toLowerCase() === "true"
+        } else if (["qc_levels_per_run", "n_per_run"].includes(header)) {
+          limit[header] = Number.parseInt(value) || (header === "n_per_run" ? 2 : 1)
+        } else if (["cusum_K", "cusum_H"].includes(header)) {
+          limit[header] = value ? Number.parseFloat(value) : header === "cusum_K" ? 0.5 : 4.0
         } else {
           limit[header] = value
         }
@@ -356,6 +445,15 @@ export class GoogleSheetsService {
       "limit_3s_lower",
       "limit_3s_upper",
       "notes",
+      "enable_2of3_2s_reject",
+      "enable_3_1s_reject",
+      "enable_6x_reject",
+      "enable_9x_reject",
+      "enable_7T_reject",
+      "n_per_run",
+      "enable_cusum",
+      "cusum_K",
+      "cusum_H",
     ]
 
     const row = headers.map((header) => {
@@ -378,17 +476,59 @@ export class GoogleSheetsService {
       const config: any = {}
       headers.forEach((header, index) => {
         const value = row[index] || ""
-        // Convert boolean fields
         if (header.startsWith("enable_") || header === "is_active") {
           config[header] = value.toLowerCase() === "true"
-        } else if (header === "qc_levels_per_run") {
-          config[header] = Number.parseInt(value) || 1
+        } else if (["qc_levels_per_run", "n_per_run"].includes(header)) {
+          config[header] = Number.parseInt(value) || (header === "n_per_run" ? 2 : 1)
+        } else if (["cusum_K", "cusum_H"].includes(header)) {
+          config[header] = value ? Number.parseFloat(value) : header === "cusum_K" ? 0.5 : 4.0
         } else {
           config[header] = value
         }
       })
       return config as WestgardConfig
     })
+  }
+
+  // Rule Settings operations
+  async getRuleSettings(): Promise<RuleSetting[]> {
+    const data = await this.readSheet("rule_settings")
+    if (data.length === 0) return []
+
+    const headers = data[0]
+    const rows = data.slice(1)
+
+    return rows.map((row) => {
+      const setting: any = {}
+      headers.forEach((header, index) => {
+        const value = row[index] || ""
+        if (["is_active", "is_extension", "default_enabled"].includes(header)) {
+          setting[header] = value.toLowerCase() === "true"
+        } else {
+          setting[header] = value
+        }
+      })
+      return setting as RuleSetting
+    })
+  }
+
+  async addRuleSetting(setting: RuleSetting): Promise<void> {
+    const headers = [
+      "rule_code",
+      "rule_name",
+      "description",
+      "is_active",
+      "is_extension",
+      "default_enabled",
+      "severity",
+      "category",
+    ]
+
+    const row = headers.map((header) => {
+      const value = setting[header as keyof RuleSetting]
+      return value !== undefined ? value.toString() : ""
+    })
+    await this.appendSheet("rule_settings", [row])
   }
 
   // Violations operations
