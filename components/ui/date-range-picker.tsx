@@ -9,12 +9,18 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface DatePickerWithRangeProps {
-  date: DateRange | undefined
-  onDateChange: (date: DateRange | undefined) => void
+  date?: DateRange | undefined
+  onDateChange?: (date: DateRange | undefined) => void
+  value?: DateRange | undefined | { from: Date; to: Date }
+  onChange?: (date: DateRange | undefined | { from: Date; to: Date }) => void
   className?: string
 }
 
-export function DatePickerWithRange({ className, date, onDateChange }: DatePickerWithRangeProps) {
+export function DatePickerWithRange({ className, date, onDateChange, value, onChange }: DatePickerWithRangeProps) {
+  // Support both prop styles: (date, onDateChange) and (value, onChange)
+  const selectedRange = date || value
+  const handleChange = onDateChange || onChange
+  
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -22,16 +28,16 @@ export function DatePickerWithRange({ className, date, onDateChange }: DatePicke
           <Button
             id="date"
             variant={"outline"}
-            className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+            className={cn("w-full justify-start text-left font-normal", !selectedRange && "text-muted-foreground")}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
+            {selectedRange?.from ? (
+              selectedRange.to ? (
                 <>
-                  {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+                  {format(selectedRange.from, "LLL dd, y")} - {format(selectedRange.to, "LLL dd, y")}
                 </>
               ) : (
-                format(date.from, "LLL dd, y")
+                format(selectedRange.from, "LLL dd, y")
               )
             ) : (
               <span>Pick a date range</span>
@@ -42,9 +48,9 @@ export function DatePickerWithRange({ className, date, onDateChange }: DatePicke
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={onDateChange}
+            defaultMonth={selectedRange?.from}
+            selected={selectedRange}
+            onSelect={handleChange}
             numberOfMonths={2}
           />
         </PopoverContent>
@@ -52,3 +58,6 @@ export function DatePickerWithRange({ className, date, onDateChange }: DatePicke
     </div>
   )
 }
+
+// Export alias for compatibility
+export { DatePickerWithRange as DateRangePicker }
