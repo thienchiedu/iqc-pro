@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -79,8 +78,8 @@ export function ViolationTracker() {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to fetch violations",
+        title: "Lỗi",
+        description: "Không thể tải danh sách vi phạm",
         variant: "destructive",
       })
     }
@@ -106,8 +105,8 @@ export function ViolationTracker() {
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "Corrective action added successfully",
+          title: "Thành công",
+          description: "Đã thêm hành động khắc phục thành công",
         })
         fetchViolations()
         setActionForm({ action: "", assignedTo: "", dueDate: "", notes: "" })
@@ -115,8 +114,8 @@ export function ViolationTracker() {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add corrective action",
+        title: "Lỗi",
+        description: "Không thể thêm hành động khắc phục",
         variant: "destructive",
       })
     }
@@ -132,15 +131,15 @@ export function ViolationTracker() {
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "Violation status updated successfully",
+          title: "Thành công",
+          description: "Đã cập nhật trạng thái vi phạm thành công",
         })
         fetchViolations()
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update violation status",
+        title: "Lỗi",
+        description: "Không thể cập nhật trạng thái vi phạm",
         variant: "destructive",
       })
     }
@@ -154,21 +153,21 @@ export function ViolationTracker() {
         body: JSON.stringify({
           status: "completed",
           completedDate: new Date().toISOString(),
-          completedBy: "Current User", // In real app, get from auth context
+          completedBy: "Current User",
         }),
       })
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "Corrective action marked as completed",
+          title: "Thành công",
+          description: "Đã đánh dấu hành động khắc phục hoàn thành",
         })
         fetchViolations()
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to complete action",
+        title: "Lỗi",
+        description: "Không thể hoàn thành hành động",
         variant: "destructive",
       })
     }
@@ -182,19 +181,6 @@ export function ViolationTracker() {
         return "secondary"
       default:
         return "default"
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "destructive"
-      case "investigating":
-        return "secondary"
-      case "resolved":
-        return "default"
-      default:
-        return "secondary"
     }
   }
 
@@ -221,36 +207,36 @@ export function ViolationTracker() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            QC Violations
+            Vi Phạm QC
           </CardTitle>
-          <CardDescription>Track and manage quality control violations and corrective actions</CardDescription>
+          <CardDescription>Theo dõi và quản lý vi phạm kiểm soát chất lượng và hành động khắc phục</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
             <div>
-              <Label htmlFor="status-filter">Status</Label>
+              <Label htmlFor="status-filter">Trạng Thái</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="investigating">Investigating</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="all">Tất Cả Trạng Thái</SelectItem>
+                  <SelectItem value="open">Mở</SelectItem>
+                  <SelectItem value="investigating">Đang Điều Tra</SelectItem>
+                  <SelectItem value="resolved">Đã Giải Quyết</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="severity-filter">Severity</Label>
+              <Label htmlFor="severity-filter">Mức Độ</Label>
               <Select value={filterSeverity} onValueChange={setFilterSeverity}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Severity</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="all">Tất Cả Mức Độ</SelectItem>
+                  <SelectItem value="warning">Cảnh Báo</SelectItem>
+                  <SelectItem value="critical">Nghiêm Trọng</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -259,19 +245,19 @@ export function ViolationTracker() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Analyte/Level</TableHead>
-                <TableHead>Instrument</TableHead>
-                <TableHead>Violated Rules</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Thời Gian</TableHead>
+                <TableHead>Analyte/Mức</TableHead>
+                <TableHead>Thiết Bị</TableHead>
+                <TableHead>Quy Tắc Vi Phạm</TableHead>
+                <TableHead>Mức Độ</TableHead>
+                <TableHead>Trạng Thái</TableHead>
+                <TableHead>Hành Động</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredViolations.map((violation) => (
                 <TableRow key={violation.id}>
-                  <TableCell>{new Date(violation.timestamp).toLocaleString()}</TableCell>
+                  <TableCell>{new Date(violation.timestamp).toLocaleString("vi-VN")}</TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">{violation.analyte}</div>
@@ -289,7 +275,9 @@ export function ViolationTracker() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getSeverityColor(violation.severity)}>{violation.severity}</Badge>
+                    <Badge variant={getSeverityColor(violation.severity)}>
+                      {violation.severity === "critical" ? "Nghiêm Trọng" : "Cảnh Báo"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Select
@@ -300,9 +288,9 @@ export function ViolationTracker() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="investigating">Investigating</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="open">Mở</SelectItem>
+                        <SelectItem value="investigating">Đang Điều Tra</SelectItem>
+                        <SelectItem value="resolved">Đã Giải Quyết</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>
@@ -316,7 +304,7 @@ export function ViolationTracker() {
                       }}
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      Action
+                      Hành Động
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -329,38 +317,38 @@ export function ViolationTracker() {
       {selectedViolation && (
         <Card>
           <CardHeader>
-            <CardTitle>Violation Details</CardTitle>
+            <CardTitle>Chi Tiết Vi Phạm</CardTitle>
             <CardDescription>
-              {selectedViolation.analyte} - {selectedViolation.level} on {selectedViolation.instrument}
+              {selectedViolation.analyte} - {selectedViolation.level} trên {selectedViolation.instrument}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="details" className="w-full">
               <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="actions">Corrective Actions</TabsTrigger>
+                <TabsTrigger value="details">Chi Tiết</TabsTrigger>
+                <TabsTrigger value="actions">Hành Động Khắc Phục</TabsTrigger>
               </TabsList>
               <TabsContent value="details" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>QC Value</Label>
+                    <Label>Giá Trị QC</Label>
                     <p className="text-sm">{selectedViolation.qcValue}</p>
                   </div>
                   <div>
-                    <Label>Expected Range</Label>
+                    <Label>Khoảng Mong Đợi</Label>
                     <p className="text-sm">{selectedViolation.expectedRange}</p>
                   </div>
                   <div>
-                    <Label>Lot Number</Label>
+                    <Label>Số Lô</Label>
                     <p className="text-sm">{selectedViolation.lot}</p>
                   </div>
                   <div>
-                    <Label>Assigned To</Label>
+                    <Label>Được Giao Cho</Label>
                     <p className="text-sm">{selectedViolation.assignedTo}</p>
                   </div>
                 </div>
                 <div>
-                  <Label>Description</Label>
+                  <Label>Mô Tả</Label>
                   <p className="text-sm">{selectedViolation.description}</p>
                 </div>
               </TabsContent>
@@ -376,12 +364,12 @@ export function ViolationTracker() {
                               <span className="font-medium">{action.action}</span>
                             </div>
                             <div className="text-sm text-muted-foreground space-y-1">
-                              <p>Assigned to: {action.assignedTo}</p>
-                              <p>Due: {new Date(action.dueDate).toLocaleDateString()}</p>
-                              {action.notes && <p>Notes: {action.notes}</p>}
+                              <p>Được giao cho: {action.assignedTo}</p>
+                              <p>Hạn: {new Date(action.dueDate).toLocaleDateString("vi-VN")}</p>
+                              {action.notes && <p>Ghi chú: {action.notes}</p>}
                               {action.completedDate && (
                                 <p>
-                                  Completed: {new Date(action.completedDate).toLocaleDateString()} by{" "}
+                                  Hoàn thành: {new Date(action.completedDate).toLocaleDateString("vi-VN")} bởi{" "}
                                   {action.completedBy}
                                 </p>
                               )}
@@ -389,7 +377,7 @@ export function ViolationTracker() {
                           </div>
                           {action.status !== "completed" && (
                             <Button variant="outline" size="sm" onClick={() => handleCompleteAction(action.id)}>
-                              Mark Complete
+                              Đánh Dấu Hoàn Thành
                             </Button>
                           )}
                         </div>
@@ -406,31 +394,33 @@ export function ViolationTracker() {
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Corrective Action</DialogTitle>
-            <DialogDescription>Define corrective action for this violation</DialogDescription>
+            <DialogTitle>Thêm Hành Động Khắc Phục</DialogTitle>
+            <DialogDescription>Định nghĩa hành động khắc phục cho vi phạm này</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddCorrectiveAction} className="space-y-4">
             <div>
-              <Label htmlFor="action">Action Description</Label>
+              <Label htmlFor="action">Mô Tả Hành Động</Label>
               <Textarea
                 id="action"
                 value={actionForm.action}
                 onChange={(e) => setActionForm({ ...actionForm, action: e.target.value })}
                 required
                 rows={3}
+                placeholder="Nhập mô tả hành động khắc phục..."
               />
             </div>
             <div>
-              <Label htmlFor="assignedTo">Assigned To</Label>
+              <Label htmlFor="assignedTo">Giao Cho</Label>
               <Input
                 id="assignedTo"
                 value={actionForm.assignedTo}
                 onChange={(e) => setActionForm({ ...actionForm, assignedTo: e.target.value })}
                 required
+                placeholder="Tên người được giao..."
               />
             </div>
             <div>
-              <Label htmlFor="dueDate">Due Date</Label>
+              <Label htmlFor="dueDate">Ngày Hạn</Label>
               <Input
                 id="dueDate"
                 type="date"
@@ -440,19 +430,20 @@ export function ViolationTracker() {
               />
             </div>
             <div>
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Ghi Chú</Label>
               <Textarea
                 id="notes"
                 value={actionForm.notes}
                 onChange={(e) => setActionForm({ ...actionForm, notes: e.target.value })}
                 rows={2}
+                placeholder="Ghi chú thêm..."
               />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsActionDialogOpen(false)}>
-                Cancel
+                Hủy
               </Button>
-              <Button type="submit">Add Action</Button>
+              <Button type="submit">Thêm Hành Động</Button>
             </DialogFooter>
           </form>
         </DialogContent>
