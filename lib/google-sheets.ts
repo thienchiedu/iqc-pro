@@ -81,16 +81,72 @@ export class GoogleSheetsService {
 
   constructor(spreadsheetId: string) {
     this.spreadsheetId = spreadsheetId
-    this.auth = new GoogleAuth({
-      keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    })
+    
+    // Use credentials from environment variables if available
+    if (process.env.GOOGLE_SHEETS_PRIVATE_KEY && process.env.GOOGLE_SHEETS_CLIENT_EMAIL) {
+      this.auth = new GoogleAuth({
+        credentials: {
+          private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
+        },
+        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      })
+    } else {
+      // Fallback to key file
+      this.auth = new GoogleAuth({
+        keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
+        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      })
+    }
   }
 
   private async getSheets() {
     const { google } = await import("googleapis")
     const authClient = await this.auth.getClient()
-    return google.sheets({ version: "v4", auth: authClient })
+    return google.sheets({ version: "v4", auth: authClient as any })
+  }
+
+  async createSheet(sheetName: string): Promise<void> {
+    try {
+      const sheets = await this.getSheets()
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: sheetName,
+                },
+              },
+            },
+          ],
+        },
+      })
+      console.log(`[v0] Sheet '${sheetName}' created successfully`)
+    } catch (error: any) {
+      // If sheet already exists, ignore the error
+      if (error.message?.includes('already exists')) {
+        console.log(`[v0] Sheet '${sheetName}' already exists, skipping creation`)
+      } else {
+        console.error(`Error creating sheet ${sheetName}:`, error)
+        throw error
+      }
+    }
+  }
+
+  async ensureSheetExists(sheetName: string): Promise<void> {
+    try {
+      // Try to read a small range to check if sheet exists
+      await this.readSheet(sheetName, "A1:A1")
+    } catch (error: any) {
+      // If sheet doesn't exist, create it
+      if (error.message?.includes('Unable to parse range') || error.message?.includes('not found')) {
+        await this.createSheet(sheetName)
+      } else {
+        throw error
+      }
+    }
   }
 
   async readSheet(sheetName: string, range?: string): Promise<any[][]> {

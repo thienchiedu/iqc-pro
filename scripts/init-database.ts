@@ -8,6 +8,7 @@ async function initializeDatabase() {
 
     // Initialize qc_points sheet
     console.log("[v0] Initializing qc_points sheet...")
+    await sheetsService.ensureSheetExists("qc_points")
     const qcPointsHeaders = [
       "timestamp",
       "run_id",
@@ -27,6 +28,7 @@ async function initializeDatabase() {
 
     // Initialize qc_limits sheet
     console.log("[v0] Initializing qc_limits sheet...")
+    await sheetsService.ensureSheetExists("qc_limits")
     const qcLimitsHeaders = [
       "analyte",
       "level",
@@ -52,6 +54,7 @@ async function initializeDatabase() {
 
     // Initialize westgard_config sheet
     console.log("[v0] Initializing westgard_config sheet...")
+    await sheetsService.ensureSheetExists("westgard_config")
     const westgardHeaders = [
       "analyte",
       "level",
@@ -72,6 +75,7 @@ async function initializeDatabase() {
 
     // Initialize violations sheet
     console.log("[v0] Initializing violations sheet...")
+    await sheetsService.ensureSheetExists("violations")
     const violationsHeaders = [
       "violation_id",
       "rule_code",
@@ -90,6 +94,7 @@ async function initializeDatabase() {
 
     // Initialize users sheet
     console.log("[v0] Initializing users sheet...")
+    await sheetsService.ensureSheetExists("users")
     const usersHeaders = [
       "user_id",
       "username",
@@ -194,7 +199,8 @@ async function initializeDatabase() {
     return { success: true, message: "Database initialized successfully" }
   } catch (error) {
     console.error("[v0] Database initialization failed:", error)
-    return { success: false, error: error.message }
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return { success: false, error: errorMessage }
   }
 }
 

@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { GoogleSheetsService } from "@/lib/google-sheets"
-
-const sheetsService = new GoogleSheetsService()
+import { getSheetsService } from "@/lib/google-sheets"
 
 export async function GET() {
   try {
+    const sheetsService = getSheetsService()
     const violations = await sheetsService.getViolations()
     return NextResponse.json(violations)
   } catch (error) {
@@ -15,6 +14,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const sheetsService = getSheetsService()
     const violationData = await request.json()
     const result = await sheetsService.addViolation(violationData)
     return NextResponse.json(result)
