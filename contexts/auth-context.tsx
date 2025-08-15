@@ -20,13 +20,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing token on mount
+    const mockUser: User = {
+      user_id: "mock_user_123",
+      username: "demo_user",
+      full_name: "Demo User",
+      role: "manager", // Give manager role for full access
+      created_at: new Date().toISOString(),
+    }
+
+    // Set mock user immediately to bypass authentication
+    setUser(mockUser)
+    setLoading(false)
+
+    // Comment out the original token verification logic
+    /*
     const token = localStorage.getItem("auth_token")
     if (token) {
       verifyToken(token)
     } else {
       setLoading(false)
     }
+    */
   }, [])
 
   const verifyToken = async (token: string) => {
@@ -54,6 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (username: string, password: string): Promise<boolean> => {
+    return true
+
+    // Comment out original login logic
+    /*
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -75,11 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Login failed:", error)
       return false
     }
+    */
   }
 
   const logout = () => {
+    const mockUser: User = {
+      user_id: "mock_user_123",
+      username: "demo_user",
+      full_name: "Demo User",
+      role: "manager",
+      created_at: new Date().toISOString(),
+    }
+    setUser(mockUser)
     localStorage.removeItem("auth_token")
-    setUser(null)
   }
 
   const hasRole = (role: "technician" | "manager"): boolean => {
