@@ -8,7 +8,6 @@ import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart3, Download, RefreshCw, TrendingUp, AlertTriangle } from "lucide-react"
 import { format } from "date-fns"
@@ -55,10 +54,30 @@ export default function QCMonitorPage() {
       let points = pointsData.points || []
 
       // Parse violations JSON and filter if needed
-      points = points.map((point: any) => ({
-        ...point,
-        violations: point.violations_json ? JSON.parse(point.violations_json).map((v: any) => v.rule) : [],
-      }))
+      points = points.map((point: any) => {
+        let violations: string[] = []
+
+        if (point.violations_json) {
+          try {
+            const parsed = JSON.parse(point.violations_json)
+            // Ensure parsed data is an array before calling map
+            if (Array.isArray(parsed)) {
+              violations = parsed.map((v: any) => v.rule || v).filter(Boolean)
+            } else if (typeof parsed === "string") {
+              // Handle case where violations_json contains a single violation string
+              violations = [parsed]
+            }
+          } catch (error) {
+            console.error("[v0] Error parsing violations_json:", error, "for point:", point.id)
+            violations = []
+          }
+        }
+
+        return {
+          ...point,
+          violations,
+        }
+      })
 
       // Apply violations filter
       if (filters.showViolationsOnly) {
@@ -328,27 +347,9 @@ export default function QCMonitorPage() {
                                   {point.z.toFixed(3)}
                                 </span>
                               </td>
-                              <td className="p-2">
-                                <Badge
-                                  variant={
-                                    point.status === "reject"
-                                      ? "destructive"
-                                      : point.status === "warning"
-                                        ? "secondary"
-                                        : "default"
-                                  }
-                                >
-                                  {point.status}
-                                </Badge>
-                              </td>
+                              <td className="p-2">{point.status}</td>
                               <td className="p-2">{point.run_id}</td>
-                              <td className="p-2">
-                                {point.violations.map((violation, vIndex) => (
-                                  <Badge key={vIndex} variant="outline" className="mr-1 text-xs">
-                                    {violation}
-                                  </Badge>
-                                ))}
-                              </td>
+                              <td className="p-2">{point.violations.join(";")}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -357,7 +358,7 @@ export default function QCMonitorPage() {
                   ) : (
                     <Alert>
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>Không có dữ liệu cho tiêu chí đã chọn.</AlertDescription>
+                      <AlertDescription>Không có dữ liệu QC để hiển thị.</AlertDescription>
                     </Alert>
                   )}
                 </CardContent>
@@ -365,93 +366,7 @@ export default function QCMonitorPage() {
             </TabsContent>
 
             <TabsContent value="statistics" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tóm tắt dữ liệu</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {qcData.length > 0 ? (
-                      <>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Tổng điểm:</span>
-                            <span className="ml-2 font-medium">{qcData.length}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Khoảng thời gian:</span>
-                            <span className="ml-2 font-medium">
-                              {qcData.length > 0 &&
-                                `${format(new Date(qcData[0].timestamp), "dd/MM")} - ${format(
-                                  new Date(qcData[qcData.length - 1].timestamp),
-                                  "dd/MM",
-                                )}`}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Trong kiểm soát:</span>
-                            <span className="ml-2 font-medium text-green-600">
-                              {inControlCount} ({((inControlCount / qcData.length) * 100).toFixed(1)}%)
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Vi phạm:</span>
-                            <span className="ml-2 font-medium text-red-600">
-                              {violationCount} ({((violationCount / qcData.length) * 100).toFixed(1)}%)
-                            </span>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground">Không có dữ liệu</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {controlLimits && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Giới hạn kiểm soát</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-muted-foreground">Trung bình:</span>
-                          <span className="ml-2 font-mono">{controlLimits.mean.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.sd.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">+1SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.limit_1s_upper.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">-1SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.limit_1s_lower.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">+2SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.limit_2s_upper.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">-2SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.limit_2s_lower.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">+3SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.limit_3s_upper.toFixed(3)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">-3SD:</span>
-                          <span className="ml-2 font-mono">{controlLimits.limit_3s_lower.toFixed(3)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              {/* Statistics Content */}
             </TabsContent>
           </Tabs>
         </main>

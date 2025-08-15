@@ -56,7 +56,7 @@ export function RuleTester() {
     try {
       const values = parseTestData(testData)
       if (values.length === 0) {
-        setError("Please enter valid numeric data points")
+        setError("Vui lòng nhập các điểm dữ liệu số hợp lệ")
         return
       }
 
@@ -97,7 +97,7 @@ export function RuleTester() {
       setResults(allResults)
     } catch (error) {
       console.error("Test error:", error)
-      setError("Error running test. Please check your data.")
+      setError("Lỗi khi chạy kiểm tra. Vui lòng kiểm tra dữ liệu của bạn.")
     }
   }
 
@@ -130,13 +130,13 @@ export function RuleTester() {
 
   const getRuleDescription = (rule: string): string => {
     const descriptions: Record<string, string> = {
-      "1_3s": "Single point beyond ±3SD - Immediate rejection",
-      "2_2s_within": "Two points in same run, same side, both ≥±2SD",
-      "2_2s_across": "Two consecutive points same level, same side, both ≥±2SD",
-      R_4s: "Two points in same run with opposite signs, range ≥4SD",
-      "4_1s": "Four consecutive points same side, all >1SD",
-      "10x": "Ten consecutive points same side of mean",
-      "1_2s": "Single point ≥±2SD - Warning only",
+      "1_3s": "Một điểm vượt quá ±3SD - Từ chối ngay lập tức",
+      "2_2s_within": "Hai điểm trong cùng một run, cùng phía, cả hai ≥±2SD",
+      "2_2s_across": "Hai điểm liên tiếp cùng level, cùng phía, cả hai ≥±2SD",
+      R_4s: "Hai điểm trong cùng run với dấu đối lập, khoảng ≥4SD",
+      "4_1s": "Bốn điểm liên tiếp cùng phía, tất cả >1SD",
+      "10x": "Mười điểm liên tiếp cùng phía của trung bình",
+      "1_2s": "Một điểm ≥±2SD - Chỉ cảnh báo",
     }
     return descriptions[rule] || rule
   }
@@ -147,15 +147,17 @@ export function RuleTester() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TestTube className="h-5 w-5" />
-            Westgard Rules Tester
+            Kiểm Tra Quy Tắc Westgard
           </CardTitle>
-          <CardDescription>Test and validate Westgard rules implementation with custom data sets</CardDescription>
+          <CardDescription>
+            Kiểm tra và xác thực việc triển khai quy tắc Westgard với bộ dữ liệu tùy chỉnh
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Control Parameters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="mean">Control Mean</Label>
+              <Label htmlFor="mean">Trung Bình Kiểm Soát</Label>
               <Input
                 id="mean"
                 type="number"
@@ -165,14 +167,14 @@ export function RuleTester() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sd">Control SD</Label>
+              <Label htmlFor="sd">Độ Lệch Chuẩn Kiểm Soát</Label>
               <Input id="sd" type="number" step="0.01" value={sd} onChange={(e) => setSd(Number(e.target.value))} />
             </div>
           </div>
 
           {/* Rule Configuration */}
           <div className="space-y-4">
-            <h4 className="font-medium">Rule Configuration</h4>
+            <h4 className="font-medium">Cấu Hình Quy Tắc</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(ruleConfig).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
@@ -197,10 +199,10 @@ export function RuleTester() {
           {/* Test Data Input */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="testData">Test Data (comma or space separated)</Label>
+              <Label htmlFor="testData">Dữ Liệu Kiểm Tra (phân cách bằng dấu phẩy hoặc khoảng trắng)</Label>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => generateSampleData("normal")}>
-                  Normal
+                  Bình Thường
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => generateSampleData("1_3s")}>
                   1₃s
@@ -223,7 +225,7 @@ export function RuleTester() {
               id="testData"
               value={testData}
               onChange={(e) => setTestData(e.target.value)}
-              placeholder="Enter test values: 98, 102, 99, 101, 100, 116, 97, 99, 101, 98"
+              placeholder="Nhập giá trị kiểm tra: 98, 102, 99, 101, 100, 116, 97, 99, 101, 98"
               rows={4}
             />
           </div>
@@ -232,7 +234,7 @@ export function RuleTester() {
           <div className="flex gap-2">
             <Button onClick={runTest} className="flex-1">
               <Play className="h-4 w-4 mr-2" />
-              Run Test
+              Chạy Kiểm Tra
             </Button>
             <Button
               variant="outline"
@@ -244,7 +246,7 @@ export function RuleTester() {
               }}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Clear
+              Xóa
             </Button>
           </div>
         </CardContent>
@@ -262,40 +264,38 @@ export function RuleTester() {
       {testPoints.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Test Results</CardTitle>
-            <CardDescription>
-              Analysis of {testPoints.length} data points with current rule configuration
-            </CardDescription>
+            <CardTitle>Kết Quả Kiểm Tra</CardTitle>
+            <CardDescription>Phân tích {testPoints.length} điểm dữ liệu với cấu hình quy tắc hiện tại</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="text-2xl font-bold text-blue-600">{testPoints.length}</div>
-                <div className="text-sm text-blue-600">Total Points</div>
+                <div className="text-sm text-blue-600">Tổng Điểm</div>
               </div>
               <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
                 <div className="text-2xl font-bold text-red-600">{results.length}</div>
-                <div className="text-sm text-red-600">Rule Violations</div>
+                <div className="text-sm text-red-600">Vi Phạm Quy Tắc</div>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="text-2xl font-bold text-green-600">{testPoints.length - results.length}</div>
-                <div className="text-sm text-green-600">In-Control Points</div>
+                <div className="text-sm text-green-600">Điểm Trong Kiểm Soát</div>
               </div>
             </div>
 
             {/* Data Points Table */}
             <div className="space-y-2">
-              <h4 className="font-medium">Data Points Analysis</h4>
+              <h4 className="font-medium">Phân Tích Điểm Dữ Liệu</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left p-2">Point</th>
-                      <th className="text-left p-2">Value</th>
-                      <th className="text-left p-2">Z-Score</th>
-                      <th className="text-left p-2">Status</th>
-                      <th className="text-left p-2">Violations</th>
+                      <th className="text-left p-2">Điểm</th>
+                      <th className="text-left p-2">Giá Trị</th>
+                      <th className="text-left p-2">Điểm Z</th>
+                      <th className="text-left p-2">Trạng Thái</th>
+                      <th className="text-left p-2">Vi Phạm</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -316,12 +316,12 @@ export function RuleTester() {
                             {hasViolations ? (
                               <Badge variant="destructive">
                                 <AlertTriangle className="h-3 w-3 mr-1" />
-                                Violation
+                                Vi Phạm
                               </Badge>
                             ) : (
                               <Badge className="bg-green-100 text-green-800 border-green-200">
                                 <CheckCircle className="h-3 w-3 mr-1" />
-                                In-Control
+                                Trong Kiểm Soát
                               </Badge>
                             )}
                           </td>
@@ -343,13 +343,13 @@ export function RuleTester() {
             {/* Violations Details */}
             {results.length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-medium">Violation Details</h4>
+                <h4 className="font-medium">Chi Tiết Vi Phạm</h4>
                 <div className="space-y-2">
                   {results.map((result, index) => (
                     <div key={index} className="p-3 bg-red-50 border border-red-200 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="destructive">{result.rule}</Badge>
-                        <span className="text-sm text-muted-foreground">Point {(result as any).pointIndex + 1}</span>
+                        <span className="text-sm text-muted-foreground">Điểm {(result as any).pointIndex + 1}</span>
                       </div>
                       <p className="text-sm text-red-700">{result.message}</p>
                       <p className="text-xs text-muted-foreground mt-1">{getRuleDescription(result.rule)}</p>

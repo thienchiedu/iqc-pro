@@ -12,16 +12,16 @@ export default function WestgardRulesPage() {
 
         <main className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Westgard Rules</h1>
+            <h1 className="text-3xl font-bold mb-2">Quy Tắc Westgard</h1>
             <p className="text-muted-foreground">
-              Test, validate, and understand Westgard quality control rules implementation
+              Kiểm tra, xác thực và hiểu về việc triển khai các quy tắc kiểm soát chất lượng Westgard
             </p>
           </div>
 
           <Tabs defaultValue="tester" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="tester">Rule Tester</TabsTrigger>
-              <TabsTrigger value="explanations">Rule Reference</TabsTrigger>
+              <TabsTrigger value="tester">Kiểm Tra Quy Tắc</TabsTrigger>
+              <TabsTrigger value="explanations">Tài Liệu Tham Khảo</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tester" className="space-y-6">

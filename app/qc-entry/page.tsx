@@ -108,17 +108,17 @@ export default function QCEntryPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       {getStatusIcon(result.status)}
-                      Analysis Result
+                      Kết Quả Phân Tích
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Status:</span>
+                      <span className="text-sm font-medium">Trạng Thái:</span>
                       <Badge className={getStatusColor(result.status)}>{result.status.toUpperCase()}</Badge>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Z-Score:</span>
+                      <span className="text-sm font-medium">Điểm Z:</span>
                       <span className={`font-mono ${Math.abs(result.z) >= 2 ? "text-red-600" : "text-green-600"}`}>
                         {result.z.toFixed(3)}
                       </span>
@@ -126,7 +126,7 @@ export default function QCEntryPage() {
 
                     {result.violations.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-sm font-medium">Violations:</span>
+                        <span className="text-sm font-medium">Vi Phạm:</span>
                         <div className="space-y-1">
                           {result.violations.map((violation, index) => (
                             <div key={index} className="text-xs bg-red-50 p-2 rounded border border-red-200">
@@ -154,41 +154,41 @@ export default function QCEntryPage() {
               {/* Instructions */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Instructions</CardTitle>
-                  <CardDescription>Guidelines for QC data entry</CardDescription>
+                  <CardTitle>Hướng Dẫn</CardTitle>
+                  <CardDescription>Hướng dẫn nhập dữ liệu QC</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div>
-                    <strong>Required Fields:</strong>
+                    <strong>Trường Bắt Buộc:</strong>
                     <ul className="list-disc list-inside mt-1 text-muted-foreground">
-                      <li>Analyte and QC Level</li>
-                      <li>Instrument and Lot ID</li>
-                      <li>Measured Value</li>
-                      <li>Run ID</li>
+                      <li>Chất phân tích và Mức QC</li>
+                      <li>Thiết bị và ID Lô</li>
+                      <li>Giá trị Đo</li>
+                      <li>ID Run</li>
                     </ul>
                   </div>
 
                   <div>
-                    <strong>Status Meanings:</strong>
+                    <strong>Ý Nghĩa Trạng Thái:</strong>
                     <ul className="list-disc list-inside mt-1 text-muted-foreground">
                       <li>
-                        <strong>In-Control:</strong> Within acceptable limits
+                        <strong>Trong Kiểm Soát:</strong> Trong giới hạn chấp nhận được
                       </li>
                       <li>
-                        <strong>Warning:</strong> Approaching control limits
+                        <strong>Cảnh Báo:</strong> Tiến gần giới hạn kiểm soát
                       </li>
                       <li>
-                        <strong>Reject:</strong> Violates Westgard rules
+                        <strong>Từ Chối:</strong> Vi phạm quy tắc Westgard
                       </li>
                     </ul>
                   </div>
 
                   <div>
-                    <strong>Z-Score Interpretation:</strong>
+                    <strong>Giải Thích Điểm Z:</strong>
                     <ul className="list-disc list-inside mt-1 text-muted-foreground">
-                      <li>|z| &lt; 2: Generally acceptable</li>
-                      <li>|z| ≥ 2: Warning level</li>
-                      <li>|z| ≥ 3: Reject level</li>
+                      <li>|z| &lt; 2: Thường chấp nhận được</li>
+                      <li>|z| ≥ 2: Mức cảnh báo</li>
+                      <li>|z| ≥ 3: Mức từ chối</li>
                     </ul>
                   </div>
                 </CardContent>

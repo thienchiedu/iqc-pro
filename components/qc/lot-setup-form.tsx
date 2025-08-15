@@ -85,7 +85,7 @@ export function LotSetupForm() {
         limits: hasLimits ? limitsData.limits[0] : undefined,
       })
     } catch (error) {
-      console.error("Error checking lot status:", error)
+      console.error("Lỗi kiểm tra trạng thái lô:", error)
     }
   }
 
@@ -119,15 +119,15 @@ export function LotSetupForm() {
 
       if (response.ok) {
         const result = await response.json()
-        setSuccess(`Limits established successfully using ${result.pointsUsed} data points`)
+        setSuccess(`Giới hạn đã được thiết lập thành công sử dụng ${result.pointsUsed} điểm dữ liệu`)
         checkLotStatus()
       } else {
         const errorData = await response.json()
-        setError(errorData.error || "Failed to establish limits")
+        setError(errorData.error || "Không thể thiết lập giới hạn")
       }
     } catch (error) {
-      console.error("Error establishing limits:", error)
-      setError("Network error. Please try again.")
+      console.error("Lỗi thiết lập giới hạn:", error)
+      setError("Lỗi mạng. Vui lòng thử lại.")
     } finally {
       setLoading(false)
     }
@@ -151,15 +151,15 @@ export function LotSetupForm() {
 
       if (response.ok) {
         const result = await response.json()
-        setSuccess(`Lot ${formData.lot_id} locked successfully`)
+        setSuccess(`Lô ${formData.lot_id} đã được khóa thành công`)
         checkLotStatus()
       } else {
         const errorData = await response.json()
-        setError(errorData.error || "Failed to lock lot")
+        setError(errorData.error || "Không thể khóa lô")
       }
     } catch (error) {
-      console.error("Error locking lot:", error)
-      setError("Network error. Please try again.")
+      console.error("Lỗi khóa lô:", error)
+      setError("Lỗi mạng. Vui lòng thử lại.")
     } finally {
       setLoading(false)
     }
@@ -173,21 +173,21 @@ export function LotSetupForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            QC Lot Setup
+            Thiết Lập Lô QC
           </CardTitle>
-          <CardDescription>Configure and establish control limits for QC lots</CardDescription>
+          <CardDescription>Cấu hình và thiết lập giới hạn kiểm soát cho lô QC</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Lot Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="analyte">Analyte</Label>
+              <Label htmlFor="analyte">Chất Phân Tích</Label>
               <Select
                 value={formData.analyte}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, analyte: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select analyte" />
+                  <SelectValue placeholder="Chọn chất phân tích" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Glucose">Glucose</SelectItem>
@@ -200,30 +200,30 @@ export function LotSetupForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="level">QC Level</Label>
+              <Label htmlFor="level">Mức QC</Label>
               <Select
                 value={formData.level}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, level: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select level" />
+                  <SelectValue placeholder="Chọn mức" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="L1">L1 (Low)</SelectItem>
-                  <SelectItem value="L2">L2 (Normal)</SelectItem>
-                  <SelectItem value="L3">L3 (High)</SelectItem>
+                  <SelectItem value="L1">L1 (Thấp)</SelectItem>
+                  <SelectItem value="L2">L2 (Bình thường)</SelectItem>
+                  <SelectItem value="L3">L3 (Cao)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="instrument_id">Instrument</Label>
+              <Label htmlFor="instrument_id">Thiết Bị</Label>
               <Select
                 value={formData.instrument_id}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, instrument_id: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select instrument" />
+                  <SelectValue placeholder="Chọn thiết bị" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="COBAS_C311">Cobas C311</SelectItem>
@@ -234,12 +234,12 @@ export function LotSetupForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lot_id">QC Lot ID</Label>
+              <Label htmlFor="lot_id">Mã Lô QC</Label>
               <Input
                 id="lot_id"
                 value={formData.lot_id}
                 onChange={(e) => setFormData((prev) => ({ ...prev, lot_id: e.target.value }))}
-                placeholder="Enter lot ID"
+                placeholder="Nhập mã lô"
               />
             </div>
           </div>
@@ -247,7 +247,7 @@ export function LotSetupForm() {
           {/* Manufacturer Values (Optional) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="mean_mfg">Manufacturer Mean (Optional)</Label>
+              <Label htmlFor="mean_mfg">Giá Trị Trung Bình NSX (Tùy chọn)</Label>
               <Input
                 id="mean_mfg"
                 type="number"
@@ -259,12 +259,12 @@ export function LotSetupForm() {
                     mean_mfg: e.target.value ? Number(e.target.value) : undefined,
                   }))
                 }
-                placeholder="Reference mean"
+                placeholder="Giá trị trung bình tham chiếu"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sd_mfg">Manufacturer SD (Optional)</Label>
+              <Label htmlFor="sd_mfg">Độ Lệch Chuẩn NSX (Tùy chọn)</Label>
               <Input
                 id="sd_mfg"
                 type="number"
@@ -276,7 +276,7 @@ export function LotSetupForm() {
                     sd_mfg: e.target.value ? Number(e.target.value) : undefined,
                   }))
                 }
-                placeholder="Reference SD"
+                placeholder="Độ lệch chuẩn tham chiếu"
               />
             </div>
           </div>
@@ -288,17 +288,17 @@ export function LotSetupForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Lot Status</span>
+              <span>Trạng Thái Lô</span>
               <div className="flex items-center gap-2">
                 {lotStatus.isLocked ? (
                   <Badge className="bg-red-100 text-red-800 border-red-200">
                     <Lock className="h-3 w-3 mr-1" />
-                    Locked
+                    Đã Khóa
                   </Badge>
                 ) : (
                   <Badge className="bg-green-100 text-green-800 border-green-200">
                     <Unlock className="h-3 w-3 mr-1" />
-                    Unlocked
+                    Chưa Khóa
                   </Badge>
                 )}
               </div>
@@ -308,7 +308,7 @@ export function LotSetupForm() {
             {/* Data Collection Progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Data Points Collected</span>
+                <span>Điểm Dữ Liệu Đã Thu Thập</span>
                 <span>
                   {lotStatus.pointsCount} / {lotStatus.requiredPoints}
                 </span>
@@ -316,8 +316,8 @@ export function LotSetupForm() {
               <Progress value={progressPercentage} className="h-2" />
               <p className="text-xs text-muted-foreground">
                 {lotStatus.pointsCount < lotStatus.requiredPoints
-                  ? `Need ${lotStatus.requiredPoints - lotStatus.pointsCount} more points to establish limits`
-                  : "Sufficient data points available"}
+                  ? `Cần thêm ${lotStatus.requiredPoints - lotStatus.pointsCount} điểm để thiết lập giới hạn`
+                  : "Đã có đủ điểm dữ liệu"}
               </p>
             </div>
 
@@ -326,14 +326,14 @@ export function LotSetupForm() {
             {/* Current Limits */}
             {lotStatus.hasLimits && lotStatus.limits && (
               <div className="space-y-3">
-                <h4 className="font-medium">Established Limits</h4>
+                <h4 className="font-medium">Giới Hạn Đã Thiết Lập</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Lab Mean:</span>
+                    <span className="text-muted-foreground">Trung Bình Lab:</span>
                     <span className="ml-2 font-mono">{lotStatus.mean_lab?.toFixed(3)}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Lab SD:</span>
+                    <span className="text-muted-foreground">Độ Lệch Chuẩn Lab:</span>
                     <span className="ml-2 font-mono">{lotStatus.sd_lab?.toFixed(3)}</span>
                   </div>
                   <div>
@@ -364,7 +364,7 @@ export function LotSetupForm() {
             <div className="flex gap-2">
               <Button onClick={handleEstablishLimits} disabled={!lotStatus.canEstablish || loading} className="flex-1">
                 <TrendingUp className="h-4 w-4 mr-2" />
-                {loading ? "Establishing..." : "Establish Limits"}
+                {loading ? "Đang thiết lập..." : "Thiết Lập Giới Hạn"}
               </Button>
 
               <Button
@@ -374,7 +374,7 @@ export function LotSetupForm() {
                 className="flex-1 bg-transparent"
               >
                 <Lock className="h-4 w-4 mr-2" />
-                {loading ? "Locking..." : "Lock Lot"}
+                {loading ? "Đang khóa..." : "Khóa Lô"}
               </Button>
             </div>
           </CardContent>

@@ -10,9 +10,9 @@ export default function LotSetupPage() {
 
         <main className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">QC Lot Setup</h1>
+            <h1 className="text-3xl font-bold mb-2">Thiết Lập Lô QC</h1>
             <p className="text-muted-foreground">
-              Configure quality control lots and establish statistical control limits
+              Cấu hình lô kiểm soát chất lượng và thiết lập giới hạn kiểm soát thống kê
             </p>
           </div>
 
