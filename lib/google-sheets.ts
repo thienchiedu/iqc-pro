@@ -29,6 +29,44 @@ export interface QCPoint {
   conclusion?: string
 }
 
+export interface Test {
+  test_id: string
+  test_name: string
+  unit: string
+  is_active: boolean
+  reference_range_low?: number
+  reference_range_high?: number
+  critical_low?: number
+  critical_high?: number
+  notes?: string
+}
+
+export interface Device {
+  device_id: string
+  device_name: string
+  serial_number: string
+  manufacturer?: string
+  model?: string
+  installation_date?: string
+  last_maintenance?: string
+  is_active: boolean
+  notes?: string
+}
+
+export interface QCLot {
+  lot_id: string
+  test_id: string
+  level: string
+  lot_number: string
+  expiry_date: string
+  mean_mfg?: number
+  sd_mfg?: number
+  manufacturer?: string
+  product_name?: string
+  is_active: boolean
+  notes?: string
+}
+
 export interface QCLimit {
   analyte: string
   level: string
@@ -232,16 +270,19 @@ export class GoogleSheetsService {
   }
 
   // QC Points operations
-  async getQCPoints(filters?: {
-    analyte?: string
-    level?: string
-    instrument_id?: string
-    lot_id?: string
-    startDate?: string
-    endDate?: string
-  }): Promise<QCPoint[]> {
+  async getQCPoints(
+    filters?: {
+      analyte?: string
+      level?: string
+      instrument_id?: string
+      lot_id?: string
+      startDate?: string
+      endDate?: string
+    },
+    pagination?: { page?: number; limit?: number },
+  ): Promise<{ points: QCPoint[]; total: number }> {
     const data = await this.readSheet("qc_points")
-    if (data.length === 0) return []
+    if (data.length === 0) return { points: [], total: 0 }
 
     const headers = data[0]
     const rows = data.slice(1)
@@ -252,8 +293,27 @@ export class GoogleSheetsService {
         const value = row[index] || ""
         if (["shift_flag", "trend_flag"].includes(header)) {
           point[header] = value.toLowerCase() === "true"
-        } else if (["cusum_pos", "cusum_neg"].includes(header)) {
+        } else if (
+          [
+            "cusum_pos",
+            "cusum_neg",
+            "value",
+            "z",
+            "mean_lab",
+            "sd_lab",
+            "mean_mfg",
+            "sd_mfg",
+            "limit_1s_lower",
+            "limit_1s_upper",
+            "limit_2s_lower",
+            "limit_2s_upper",
+            "limit_3s_lower",
+            "limit_3s_upper",
+          ].includes(header)
+        ) {
           point[header] = value ? Number.parseFloat(value) : 0
+        } else if (header === "timestamp") {
+          point[header] = this.normalizeTimestamp(value)
         } else {
           point[header] = value
         }
@@ -283,7 +343,17 @@ export class GoogleSheetsService {
       }
     }
 
-    return points
+    const total = points.length
+
+    // Apply pagination (only if limit is reasonable and less than total)
+    if (pagination && pagination.page && pagination.limit && pagination.limit < points.length) {
+      const { page, limit } = pagination
+      const startIndex = (page - 1) * limit
+      const endIndex = page * limit
+      points = points.slice(startIndex, endIndex)
+    }
+
+    return { points, total }
   }
 
   async addQCPoint(point: QCPoint): Promise<void> {
@@ -589,6 +659,164 @@ export class GoogleSheetsService {
 
     const row = headers.map((header) => violation[header as keyof Violation] || "")
     await this.appendSheet("violations", [row])
+  }
+
+  /**
+   * Normalize timestamp to ensure it's in a valid ISO format
+   * Handles various timestamp formats from Google Sheets
+   */
+  private normalizeTimestamp(value: string): string {
+    if (!value || value.trim() === "") {
+      // Return current timestamp if empty
+      return new Date().toISOString()
+    }
+
+    try {
+      // Try to parse the value as a date
+      const date = new Date(value)
+
+      // Check if the date is valid
+      if (!isNaN(date.getTime())) {
+        return date.toISOString()
+      }
+
+      // If invalid, try to handle common Google Sheets date formats
+      // Google Sheets sometimes exports dates as serial numbers
+      const numericValue = Number(value)
+      if (!isNaN(numericValue) && numericValue > 25569) {
+        // Excel/Google Sheets serial date (days since 1900-01-01)
+        // 25569 is 1970-01-01 in Excel serial date format
+        const excelDate = new Date((numericValue - 25569) * 86400 * 1000)
+        if (!isNaN(excelDate.getTime())) {
+          return excelDate.toISOString()
+        }
+      }
+
+      // If all else fails, return current timestamp
+      console.warn("Could not parse timestamp:", value, "using current time")
+      return new Date().toISOString()
+    } catch (error) {
+      console.warn("Error parsing timestamp:", value, error, "using current time")
+      return new Date().toISOString()
+    }
+  }
+
+  // Master Data operations
+  async getTests(): Promise<Test[]> {
+    const data = await this.readSheet("tests")
+    if (data.length === 0) return []
+
+    const headers = data[0]
+    const rows = data.slice(1)
+
+    return rows.map((row) => {
+      const test: any = {}
+      headers.forEach((header, index) => {
+        const value = row[index] || ""
+        if (header === "is_active") {
+          test[header] = value.toLowerCase() === "true"
+        } else if (["reference_range_low", "reference_range_high", "critical_low", "critical_high"].includes(header)) {
+          test[header] = value ? Number.parseFloat(value) : undefined
+        } else {
+          test[header] = value
+        }
+      })
+      return test as Test
+    })
+  }
+
+  async getDevices(): Promise<Device[]> {
+    const data = await this.readSheet("devices")
+    if (data.length === 0) return []
+
+    const headers = data[0]
+    const rows = data.slice(1)
+
+    return rows.map((row) => {
+      const device: any = {}
+      headers.forEach((header, index) => {
+        const value = row[index] || ""
+        if (header === "is_active") {
+          device[header] = value.toLowerCase() === "true"
+        } else {
+          device[header] = value
+        }
+      })
+      return device as Device
+    })
+  }
+
+  async getQCLots(): Promise<QCLot[]> {
+    const data = await this.readSheet("qc_lots")
+    if (data.length === 0) return []
+
+    const headers = data[0]
+    const rows = data.slice(1)
+
+    return rows.map((row) => {
+      const lot: any = {}
+      headers.forEach((header, index) => {
+        const value = row[index] || ""
+        if (header === "is_active") {
+          lot[header] = value.toLowerCase() === "true"
+        } else if (["mean_mfg", "sd_mfg"].includes(header)) {
+          lot[header] = value ? Number.parseFloat(value) : undefined
+        } else {
+          lot[header] = value
+        }
+      })
+      return lot as QCLot
+    })
+  }
+
+  async addTest(test: Omit<Test, "test_id"> & { test_id?: string }): Promise<void> {
+    const testId = test.test_id || `TEST_${Date.now()}`
+    const row = [
+      testId,
+      test.test_name,
+      test.unit,
+      test.is_active.toString(),
+      test.reference_range_low?.toString() || "",
+      test.reference_range_high?.toString() || "",
+      test.critical_low?.toString() || "",
+      test.critical_high?.toString() || "",
+      test.notes || "",
+    ]
+    await this.appendSheet("tests", [row])
+  }
+
+  async addDevice(device: Omit<Device, "device_id"> & { device_id?: string }): Promise<void> {
+    const deviceId = device.device_id || `DEV_${Date.now()}`
+    const row = [
+      deviceId,
+      device.device_name,
+      device.serial_number,
+      device.manufacturer || "",
+      device.model || "",
+      device.installation_date || "",
+      device.last_maintenance || "",
+      device.is_active.toString(),
+      device.notes || "",
+    ]
+    await this.appendSheet("devices", [row])
+  }
+
+  async addQCLot(lot: Omit<QCLot, "lot_id"> & { lot_id?: string }): Promise<void> {
+    const lotId = lot.lot_id || `LOT_${Date.now()}`
+    const row = [
+      lotId,
+      lot.test_id,
+      lot.level,
+      lot.lot_number,
+      lot.expiry_date,
+      lot.mean_mfg?.toString() || "",
+      lot.sd_mfg?.toString() || "",
+      lot.manufacturer || "",
+      lot.product_name || "",
+      lot.is_active.toString(),
+      lot.notes || "",
+    ]
+    await this.appendSheet("qc_lots", [row])
   }
 }
 

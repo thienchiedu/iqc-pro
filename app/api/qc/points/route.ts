@@ -12,13 +12,18 @@ export async function GET(request: NextRequest) {
       startDate: searchParams.get("startDate") || undefined,
       endDate: searchParams.get("endDate") || undefined,
     }
+    const page = searchParams.get("page") ? parseInt(searchParams.get("page") as string) : 1
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit") as string) : 20
 
     const sheetsService = getSheetsService()
-    const points = await sheetsService.getQCPoints(filters)
+    const { points, total } = await sheetsService.getQCPoints(filters, { page, limit })
 
-    return NextResponse.json({ points })
+    console.log(`[api/qc/points] Filters: ${JSON.stringify(filters)}, Page: ${page}, Limit: ${limit}, Total: ${total}`)
+
+    return NextResponse.json({ points, total, page, limit })
   } catch (error) {
     console.error("Error fetching QC points:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+

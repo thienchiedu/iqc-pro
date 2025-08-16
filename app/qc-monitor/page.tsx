@@ -1,17 +1,37 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { LeveyJenningsChart, type QCDataPoint, type ControlLimits } from "@/components/charts/levey-jennings-chart"
 import { QCMonitorFilters, type QCFilters } from "@/components/qc/qc-monitor-filters"
+import { QCDataTable } from "@/components/qc/qc-data-table"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BarChart3, Download, RefreshCw, TrendingUp, AlertTriangle } from "lucide-react"
+import { BarChart3, Download, RefreshCw, TrendingUp, AlertTriangle, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { BackButton } from "@/components/ui/back-button"
+
+async function fetchQCDataAPI(filters: QCFilters, page: number, limit: number) {
+  const params = new URLSearchParams()
+  if (filters.analyte) params.append("analyte", filters.analyte)
+  if (filters.level) params.append("level", filters.level)
+  if (filters.instrument_id) params.append("instrument_id", filters.instrument_id)
+  if (filters.lot_id) params.append("lot_id", filters.lot_id)
+  if (filters.dateRange?.from) params.append("startDate", filters.dateRange.from.toISOString())
+  if (filters.dateRange?.to) params.append("endDate", filters.dateRange.to.toISOString())
+  params.append("page", page.toString())
+  params.append("limit", limit.toString())
+
+  const response = await fetch(`/api/qc/points?${params.toString()}`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch QC data")
+  }
+  return response.json()
+}
 
 export default function QCMonitorPage() {
   const [filters, setFilters] = useState<QCFilters>({
@@ -24,126 +44,91 @@ export default function QCMonitorPage() {
     showTrend: false,
     maxPoints: 100,
   })
+  const [pagination, setPagination] = useState({ page: 1, limit: 20 })
 
-  const [qcData, setQcData] = useState<QCDataPoint[]>([])
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["qcData", filters],
+    queryFn: () => fetchQCDataAPI(filters, 1, filters.maxPoints),
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  })
+
+  const allQcData = data?.points || []
+  const totalPoints = data?.total || 0
+
+  // Apply frontend pagination to the fetched data
+  const startIndex = (pagination.page - 1) * pagination.limit
+  const endIndex = pagination.page * pagination.limit
+  const qcData = allQcData.slice(startIndex, endIndex)
+
+  // This part is tricky, as control limits are separate. We'll fetch them independently for now.
+  // A more advanced implementation might combine this into a single query.
   const [controlLimits, setControlLimits] = useState<ControlLimits | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchQCData = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Build query parameters
-      const params = new URLSearchParams()
-      if (filters.analyte) params.append("analyte", filters.analyte)
-      if (filters.level) params.append("level", filters.level)
-      if (filters.instrument_id) params.append("instrument_id", filters.instrument_id)
-      if (filters.lot_id) params.append("lot_id", filters.lot_id)
-      if (filters.dateRange?.from) params.append("startDate", filters.dateRange.from.toISOString())
-      if (filters.dateRange?.to) params.append("endDate", filters.dateRange.to.toISOString())
-
-      // Fetch QC points
-      const pointsResponse = await fetch(`/api/qc/points?${params.toString()}`)
-      if (!pointsResponse.ok) {
-        throw new Error("Failed to fetch QC data")
-      }
-
-      const pointsData = await pointsResponse.json()
-      let points = pointsData.points || []
-
-      // Parse violations JSON and filter if needed
-      points = points.map((point: any) => {
-        let violations: string[] = []
-
-        if (point.violations_json) {
-          try {
-            const parsed = JSON.parse(point.violations_json)
-            // Ensure parsed data is an array before calling map
-            if (Array.isArray(parsed)) {
-              violations = parsed.map((v: any) => v.rule || v).filter(Boolean)
-            } else if (typeof parsed === "string") {
-              // Handle case where violations_json contains a single violation string
-              violations = [parsed]
-            }
-          } catch (error) {
-            console.error("[v0] Error parsing violations_json:", error, "for point:", point.id)
-            violations = []
-          }
+  const fetchControlLimits = async () => {
+    if (filters.analyte && filters.level && filters.instrument_id && filters.lot_id) {
+      const limitsResponse = await fetch(
+        `/api/qc/limits?analyte=${filters.analyte}&level=${filters.level}&instrument_id=${filters.instrument_id}&lot_id=${filters.lot_id}`,
+      )
+      if (limitsResponse.ok) {
+        const limitsData = await limitsResponse.json()
+        if (limitsData.limits && limitsData.limits.length > 0) {
+          setControlLimits(limitsData.limits[0])
+        } else {
+          setControlLimits(null)
         }
-
-        return {
-          ...point,
-          violations,
-        }
-      })
-
-      // Apply violations filter
-      if (filters.showViolationsOnly) {
-        points = points.filter((point: any) => point.status === "reject" || point.status === "warning")
       }
-
-      // Limit number of points
-      if (points.length > filters.maxPoints) {
-        points = points.slice(-filters.maxPoints)
-      }
-
-      setQcData(points)
-
-      // Fetch control limits if we have specific criteria
-      if (filters.analyte && filters.level && filters.instrument_id && filters.lot_id) {
-        const limitsResponse = await fetch(
-          `/api/qc/limits?analyte=${filters.analyte}&level=${filters.level}&instrument_id=${filters.instrument_id}&lot_id=${filters.lot_id}`,
-        )
-
-        if (limitsResponse.ok) {
-          const limitsData = await limitsResponse.json()
-          if (limitsData.limits && limitsData.limits.length > 0) {
-            setControlLimits(limitsData.limits[0])
-          } else {
-            setControlLimits(null)
-          }
-        }
-      } else {
-        setControlLimits(null)
-      }
-    } catch (error) {
-      console.error("Error fetching QC data:", error)
-      setError("Failed to load QC data. Please try again.")
-    } finally {
-      setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchQCData()
-  }, [])
-
   const handleApplyFilters = () => {
-    fetchQCData()
+    fetchControlLimits()
+    refetch()
   }
 
-  const exportData = () => {
-    if (qcData.length === 0) return
+  const handleRefreshData = () => {
+    // Force refresh by invalidating cache
+    refetch()
+  }
 
+  const handlePageChange = (newPage: number) => {
+    setPagination((prev) => ({ ...prev, page: newPage }))
+  }
+
+
+
+  const exportData = () => {
+    // Export all fetched data (not just current page)
+    if (allQcData.length === 0) return
     const csvContent = [
       ["Point", "Date", "Value", "Z-Score", "Status", "Violations", "Run ID", "Operator", "Comment"].join(","),
-      ...qcData.map((point, index) =>
-        [
-          index + 1,
-          format(new Date(point.timestamp), "yyyy-MM-dd HH:mm:ss"),
-          point.value.toFixed(3),
-          point.z.toFixed(3),
+      ...allQcData.map((point, index) => {
+        let formattedTimestamp = "Invalid Date"
+        try {
+          if (point.timestamp) {
+            const date = new Date(point.timestamp)
+            if (!isNaN(date.getTime())) {
+              formattedTimestamp = format(date, "yyyy-MM-dd HH:mm:ss")
+            }
+          }
+        } catch (error) {
+          console.warn("Invalid timestamp format in CSV export:", point.timestamp, error)
+        }
+        const safeValue = typeof point.value === 'number' ? point.value : parseFloat(point.value) || 0
+        const safeZ = typeof point.z === 'number' ? point.z : parseFloat(point.z) || 0
+        return [
+          (pagination.page - 1) * pagination.limit + index + 1,
+          formattedTimestamp,
+          safeValue.toFixed(3),
+          safeZ.toFixed(3),
           point.status,
-          point.violations.join(";"),
+          Array.isArray(point.violations) ? point.violations.join(";") : "",
           point.run_id,
           point.operator || "",
           point.comment || "",
-        ].join(","),
-      ),
+        ].join(",")
+      }),
     ].join("\n")
-
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -164,19 +149,17 @@ export default function QCMonitorPage() {
     return parts.length > 0 ? parts.join(" • ") : "All QC Data"
   }
 
-  const violationCount = qcData.filter((d) => d.status === "reject").length
-  const warningCount = qcData.filter((d) => d.status === "warning").length
-  const inControlCount = qcData.filter((d) => d.status === "in-control").length
+  const violationCount = allQcData.filter((d) => d.status === "reject").length
+  const warningCount = allQcData.filter((d) => d.status === "warning").length
+  const inControlCount = allQcData.filter((d) => d.status === "in-control").length
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
         <Header />
-
         <div className="container mx-auto px-4 pt-4">
           <BackButton />
         </div>
-
         <main className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -187,11 +170,11 @@ export default function QCMonitorPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={fetchQCData} disabled={loading}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                   Làm mới
                 </Button>
-                <Button variant="outline" onClick={exportData} disabled={qcData.length === 0}>
+                <Button variant="outline" onClick={exportData} disabled={allQcData.length === 0}>
                   <Download className="h-4 w-4 mr-2" />
                   Xuất CSV
                 </Button>
@@ -207,111 +190,109 @@ export default function QCMonitorPage() {
             </TabsList>
 
             <TabsContent value="chart" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Filters */}
-                <div className="lg:col-span-1">
-                  <QCMonitorFilters
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    onApplyFilters={handleApplyFilters}
-                    loading={loading}
-                  />
+              <div className="w-full">
+                <QCMonitorFilters
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  onApplyFilters={handleApplyFilters}
+                  loading={isLoading}
+                />
+              </div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Tổng điểm</p>
+                          <p className="text-2xl font-bold">{qcData.length}</p>
+                        </div>
+                        <BarChart3 className="h-8 w-8 text-blue-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Trong kiểm soát</p>
+                          <p className="text-2xl font-bold text-green-600">{inControlCount}</p>
+                        </div>
+                        <TrendingUp className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Cảnh báo</p>
+                          <p className="text-2xl font-bold text-yellow-600">{warningCount}</p>
+                        </div>
+                        <AlertTriangle className="h-8 w-8 text-yellow-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Vi phạm</p>
+                          <p className="text-2xl font-bold text-red-600">{violationCount}</p>
+                        </div>
+                        <AlertTriangle className="h-8 w-8 text-red-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-
-                {/* Chart */}
-                <div className="lg:col-span-3 space-y-6">
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Tổng điểm</p>
-                            <p className="text-2xl font-bold">{qcData.length}</p>
-                          </div>
-                          <BarChart3 className="h-8 w-8 text-blue-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Trong kiểm soát</p>
-                            <p className="text-2xl font-bold text-green-600">{inControlCount}</p>
-                          </div>
-                          <TrendingUp className="h-8 w-8 text-green-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Cảnh báo</p>
-                            <p className="text-2xl font-bold text-yellow-600">{warningCount}</p>
-                          </div>
-                          <AlertTriangle className="h-8 w-8 text-yellow-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Vi phạm</p>
-                            <p className="text-2xl font-bold text-red-600">{violationCount}</p>
-                          </div>
-                          <AlertTriangle className="h-8 w-8 text-red-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Error Display */}
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Chart */}
-                  {controlLimits ? (
-                    <LeveyJenningsChart
-                      data={qcData}
-                      limits={controlLimits}
-                      title={getFilterSummary()}
-                      analyte={filters.analyte}
-                      level={filters.level}
-                      instrument={filters.instrument_id}
-                      lot={filters.lot_id}
-                      showViolations={true}
-                      showTrend={filters.showTrend}
-                      height={500}
-                    />
-                  ) : (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Biểu đồ Levey-Jennings</CardTitle>
-                        <CardDescription>{getFilterSummary()}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Alert>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{error.message}</AlertDescription>
+                  </Alert>
+                )}
+                {allQcData.length > 0 ? (
+                  <LeveyJenningsChart
+                    data={allQcData}
+                    limits={controlLimits}
+                    title={getFilterSummary()}
+                    analyte={filters.analyte}
+                    level={filters.level}
+                    instrument={filters.instrument_id}
+                    lot={filters.lot_id}
+                    showViolations={true}
+                    showTrend={filters.showTrend}
+                    height={500}
+                  />
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Biểu đồ Levey-Jennings</CardTitle>
+                      <CardDescription>{getFilterSummary()}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          {isLoading
+                            ? "Đang tải dữ liệu..."
+                            : "Không có dữ liệu cho tiêu chí đã chọn. Vui lòng điều chỉnh bộ lọc và nhấn 'Áp Dụng Bộ Lọc'."}
+                        </AlertDescription>
+                      </Alert>
+                      {!controlLimits && qcData.length > 0 && (
+                        <Alert className="mt-4">
                           <AlertTriangle className="h-4 w-4" />
                           <AlertDescription>
-                            {qcData.length === 0
-                              ? "Không có dữ liệu cho tiêu chí đã chọn."
-                              : "Vui lòng chọn analyte, level, thiết bị và lô cụ thể để hiển thị giới hạn kiểm soát."}
+                            Chưa có giới hạn kiểm soát cho tổ hợp này. Biểu đồ sẽ hiển thị dữ liệu mà không có đường giới hạn.
                           </AlertDescription>
                         </Alert>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
@@ -322,44 +303,23 @@ export default function QCMonitorPage() {
                   <CardDescription>Xem chi tiết các phép đo kiểm soát chất lượng</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {qcData.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Điểm</th>
-                            <th className="text-left p-2">Ngày/Giờ</th>
-                            <th className="text-left p-2">Giá trị</th>
-                            <th className="text-left p-2">Z-Score</th>
-                            <th className="text-left p-2">Trạng thái</th>
-                            <th className="text-left p-2">Run ID</th>
-                            <th className="text-left p-2">Vi phạm</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {qcData.map((point, index) => (
-                            <tr key={point.id} className="border-b hover:bg-gray-50">
-                              <td className="p-2">{index + 1}</td>
-                              <td className="p-2">{format(new Date(point.timestamp), "dd/MM/yyyy HH:mm")}</td>
-                              <td className="p-2 font-mono">{point.value.toFixed(3)}</td>
-                              <td className="p-2 font-mono">
-                                <span className={Math.abs(point.z) >= 2 ? "text-red-600" : "text-green-600"}>
-                                  {point.z.toFixed(3)}
-                                </span>
-                              </td>
-                              <td className="p-2">{point.status}</td>
-                              <td className="p-2">{point.run_id}</td>
-                              <td className="p-2">{point.violations.join(";")}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ) : (
-                    <Alert>
+                  ) : error ? (
+                    <Alert variant="destructive">
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>Không có dữ liệu QC để hiển thị.</AlertDescription>
+                      <AlertDescription>{error.message}</AlertDescription>
                     </Alert>
+                  ) : (
+                    <QCDataTable
+                      data={qcData}
+                      page={pagination.page}
+                      limit={pagination.limit}
+                      total={allQcData.length}
+                      onPageChange={handlePageChange}
+                    />
                   )}
                 </CardContent>
               </Card>

@@ -43,7 +43,7 @@ export interface ControlLimits {
 
 interface LeveyJenningsChartProps {
   data: QCDataPoint[]
-  limits: ControlLimits
+  limits: ControlLimits | null
   title?: string
   analyte?: string
   level?: string
@@ -67,14 +67,32 @@ export function LeveyJenningsChart({
   showTrend = false,
 }: LeveyJenningsChartProps) {
   const chartData = useMemo(() => {
-    return data.map((point, index) => ({
-      ...point,
-      index: index + 1,
-      date: format(new Date(point.timestamp), "MM/dd HH:mm"),
-      fullDate: format(new Date(point.timestamp), "yyyy-MM-dd HH:mm:ss"),
-      mean: limits.mean,
-    }))
-  }, [data, limits.mean])
+    return data.map((point, index) => {
+      // Safe timestamp formatting
+      let formattedDate = "Invalid Date"
+      let formattedFullDate = "Invalid Date"
+
+      try {
+        if (point.timestamp) {
+          const date = new Date(point.timestamp)
+          if (!isNaN(date.getTime())) {
+            formattedDate = format(date, "MM/dd HH:mm")
+            formattedFullDate = format(date, "yyyy-MM-dd HH:mm:ss")
+          }
+        }
+      } catch (error) {
+        console.warn("Invalid timestamp format in chart:", point.timestamp, error)
+      }
+
+      return {
+        ...point,
+        index: index + 1,
+        date: formattedDate,
+        fullDate: formattedFullDate,
+        mean: limits?.mean || 0,
+      }
+    })
+  }, [data, limits?.mean])
 
   const getPointColor = (status: string) => {
     switch (status) {
@@ -122,11 +140,11 @@ export function LeveyJenningsChart({
             {getStatusIcon(data.status)}
             <span className="text-sm capitalize">{data.status}</span>
           </div>
-          {data.violations.length > 0 && (
+          {data.violations && Array.isArray(data.violations) && data.violations.length > 0 && (
             <div className="mt-2">
               <p className="text-xs font-medium text-red-600">Violations:</p>
               {data.violations.map((violation: string, index: number) => (
-                <Badge key={index} variant="destructive" className="text-xs mr-1">
+                <Badge key={`violation-${violation}-${index}`} variant="destructive" className="text-xs mr-1">
                   {violation}
                 </Badge>
               ))}
@@ -212,28 +230,37 @@ export function LeveyJenningsChart({
       <CardContent>
         <div className="space-y-4">
           {/* Control Limits Info */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Mean:</span>
-              <span className="ml-2 font-mono">{limits.mean.toFixed(3)}</span>
+          {limits ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Mean:</span>
+                <span className="ml-2 font-mono">{limits.mean.toFixed(3)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">SD:</span>
+                <span className="ml-2 font-mono">{limits.sd.toFixed(3)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">±2SD:</span>
+                <span className="ml-2 font-mono">
+                  {limits.limit_2s_lower.toFixed(1)} - {limits.limit_2s_upper.toFixed(1)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">±3SD:</span>
+                <span className="ml-2 font-mono">
+                  {limits.limit_3s_lower.toFixed(1)} - {limits.limit_3s_upper.toFixed(1)}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-muted-foreground">SD:</span>
-              <span className="ml-2 font-mono">{limits.sd.toFixed(3)}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">±2SD:</span>
-              <span className="ml-2 font-mono">
-                {limits.limit_2s_lower.toFixed(1)} - {limits.limit_2s_upper.toFixed(1)}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">±3SD:</span>
-              <span className="ml-2 font-mono">
-                {limits.limit_3s_lower.toFixed(1)} - {limits.limit_3s_upper.toFixed(1)}
-              </span>
-            </div>
-          </div>
+          ) : (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Chưa có giới hạn kiểm soát cho tổ hợp này. Biểu đồ hiển thị dữ liệu mà không có đường giới hạn.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Chart */}
           <ResponsiveContainer width="100%" height={height}>
@@ -252,13 +279,17 @@ export function LeveyJenningsChart({
               />
 
               {/* Control Limits */}
-              <ReferenceLine y={limits.mean} stroke="#2563eb" strokeWidth={2} strokeDasharray="5 5" />
-              <ReferenceLine y={limits.limit_1s_upper} stroke="#10b981" strokeWidth={1} strokeDasharray="3 3" />
-              <ReferenceLine y={limits.limit_1s_lower} stroke="#10b981" strokeWidth={1} strokeDasharray="3 3" />
-              <ReferenceLine y={limits.limit_2s_upper} stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 3" />
-              <ReferenceLine y={limits.limit_2s_lower} stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 3" />
-              <ReferenceLine y={limits.limit_3s_upper} stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" />
-              <ReferenceLine y={limits.limit_3s_lower} stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" />
+              {limits && (
+                <>
+                  <ReferenceLine y={limits.mean} stroke="#2563eb" strokeWidth={2} strokeDasharray="5 5" />
+                  <ReferenceLine y={limits.limit_1s_upper} stroke="#10b981" strokeWidth={1} strokeDasharray="3 3" />
+                  <ReferenceLine y={limits.limit_1s_lower} stroke="#10b981" strokeWidth={1} strokeDasharray="3 3" />
+                  <ReferenceLine y={limits.limit_2s_upper} stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 3" />
+                  <ReferenceLine y={limits.limit_2s_lower} stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 3" />
+                  <ReferenceLine y={limits.limit_3s_upper} stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" />
+                  <ReferenceLine y={limits.limit_3s_lower} stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" />
+                </>
+              )}
 
               {/* Data Line */}
               <Line

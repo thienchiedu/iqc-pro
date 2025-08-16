@@ -494,3 +494,275 @@ logger.error('Westgard rule check failed', {
 ---
 
 *Tài liệu này được cập nhật thường xuyên. Phiên bản hiện tại: v1.0.0*
+Dưới đây là bản thiết kế phần mềm IQC & Quality Control hoàn chỉnh (end-to-end) cho phòng xét nghiệm của bạn. Tài liệu đã hợp nhất các yêu cầu trước đó, bám sát chuẩn Levey–Jennings + Westgard Rules (định nghĩa quy tắc, cách thiết lập giới hạn, vai trò của 1₍2s₎, phạm vi R₍4s₎) và khuyến nghị CLSI C24 về lập kế hoạch QC. Những chỗ quan trọng được gắn nguồn tham khảo tin cậy.
+
+1) Mục tiêu & phạm vi
+
+Mục tiêu: Giám sát IQC theo đồ thị Levey–Jennings với multirule Westgard; cảnh báo vi phạm; ghi nhận nguyên nhân/khắc phục; báo cáo hiệu năng theo ngày/tháng/máy/xét nghiệm.
+
+Phạm vi: Hóa sinh (N=2 phổ biến), huyết học/đông máu/miễn dịch (N=3 hoặc 4); cấu hình quy tắc theo từng thông số (per-analyte), theo mức QC (L1/L2/L3), theo máy và theo lô.
+
+Nguyên tắc cốt lõi:
+
+Thiết lập giới hạn theo từng lô từ ≥20 kết quả nội bộ qua ≥10 ngày, tính mean/SD → khóa (lock) và dùng ổn định cho đến khi đổi lô. 
+Westgard QC
+
+Áp dụng Westgard multirule đúng định nghĩa: 1₍3s₎, 2₍2s₎, R₍4s₎ chỉ within-run, 4₍1s₎, 10x (và biến thể 8x/12x). 1₍2s₎ là cảnh báo (warning), có thể bật/tắt. 
+Westgard QC
++1
+
+Chọn bộ quy tắc theo chất lượng Sigma: 6σ → 1₍3s₎; 5σ → 1₍3s₎/2₍2s₎/R₍4s₎; 4σ → +4₍1s₎ (N=4 ưu tiên). 
+Westgard QC
+
+2) Vai trò người dùng & quyền
+
+data_entry (KTV nhập liệu): nhập điểm QC, ghi chú, RCA; xem cảnh báo.
+
+lead_tech (KTV trưởng): duyệt/chốt vi phạm, cập nhật RCA.
+
+qa_manager (QL chất lượng): cấu hình quy tắc per-analyte/lot, phê duyệt “establish & lock” limits.
+
+unit_manager (QL đơn vị): xem báo cáo tổng hợp, KPI.
+
+admin/sadmin: quản trị hệ thống, phân quyền, nhật ký/audit.
+
+3) Kiến trúc & công nghệ
+
+Frontend: Next.js (App Router), Tailwind + shadcn/ui, Recharts (LJ chart).
+
+Backend: Node.js/Express (REST); xác thực JWT; rule-engine Westgard; xuất PDF.
+
+Dữ liệu: Google Sheets (qua Service Account) làm kho chính; có thể thêm BigQuery/KV cache nếu cần.
+
+Caching client: TanStack Query v5 với TTL theo loại dữ liệu, prefetch + SSR/hydration, persistence 24h. (v5 bỏ keepPreviousData cũ; dùng placeholderData/keepPreviousData helper; cấu hình gcTime ≥ maxAge khi bật persist). 
+TanStack
++1
+
+4) Luồng nghiệp vụ chính
+
+Rollover lô mới → nhập thông tin QC lot; thu thập ≥20 điểm “in-control” → Establish mean/SD nội bộ → Lock giới hạn theo lô (không cập nhật hàng ngày). 
+Westgard QC
+
+Vận hành hằng ngày → nhập điểm (L1/L2/…); rule-engine tính z, đánh giá within-run & across-runs, ghi vi phạm (kèm mức/cặp).
+
+Cảnh báo & xử trí → gợi ý nguyên nhân (random/ systematic), RCA, hành động khắc phục, chặn báo cáo bệnh nhân nếu “reject”.
+
+Báo cáo → theo ngày/tháng/máy/xét nghiệm: số vi phạm theo từng rule; phân loại RE/SE; biểu đồ LJ + danh sách vi phạm.
+
+5) Định nghĩa quy tắc Westgard áp dụng
+
+1₍3s₎: 1 điểm vượt ±3SD → reject.
+
+1₍2s₎: 1 điểm vượt ±2SD → warning (tùy chọn).
+
+2₍2s₎ (across-runs): 2 điểm liên tiếp cùng mức, cùng phía, ≥2SD → reject.
+
+2₍2s₎ (within-run): L1 & L2 cùng phía, ≥2SD trong cùng run → reject.
+
+R₍4s₎ (within-run): L1 & L2 trái dấu, chênh tổng ≥4SD trong cùng run → reject (chỉ within-run).
+
+4₍1s₎: 4 điểm liên tiếp cùng phía, >1SD → reject.
+
+10x (hoặc 8x/12x): 10 (8/12) điểm liên tiếp cùng phía mean → reject. 
+Westgard QC
+
+Mở rộng cho N=3 (nếu bật): 2of3_2s, 3_1s, 6x/9x; 7T (trend 7 điểm) gắn nhãn extension (không thuộc bộ cổ điển).
+
+Khuyến nghị theo Sigma: 6σ chỉ 1₍3s₎; 5σ thêm 2₍2s₎/R₍4s₎; 4σ thêm 4₍1s₎ (N=4 hoặc 2×2). 
+Westgard QC
+
+6) Rule-engine & phát hiện
+
+Z-score: z = (value − mean_lab)/sd_lab (tham chiếu từ giới hạn đã lock theo lô).
+
+Cửa sổ đếm:
+
+Across-runs: theo chuỗi điểm cùng analyte/level/device/lot (10x/8x/12x; 4₍1s₎; 2₍2s₎ across).
+
+Within-run: theo run_id (2₍2s₎ within; R₍4s₎ within-run). 
+Westgard QC
+
+CUSUM (tùy chọn): theo dõi lệch nhỏ kéo dài (S⁺/S⁻) với tham số K (≈0.5–1.0 SD) và ngưỡng H; sinh cảnh báo khi vượt ngưỡng. (Tham khảo Westgard/CUSUM cho QC).
+
+Phân loại lỗi: Random vs. Systematic dựa vào loại rule vi phạm (ví dụ R₍4s₎ nhạy random error; 10x/4₍1s₎ gợi ý bias/shift). 
+Westgard QC
+
+7) API (REST) – giao diện giữa FE và BE
+
+POST /api/qc/ingest → nhập điểm QC; trả z, status (in-control/warning/reject), violations[], level_badges (mức/cặp), trend{shift,trend}, cusum{pos,neg,crossed}.
+
+POST /api/qc/limits/establish → tính mean/SD nội bộ (lọc điểm in-control, ≥20) → cập nhật qc_limits.
+
+POST /api/qc/limits/lock → khóa giới hạn theo lô.
+
+GET/PUT /api/qc/config → xem/sửa cấu hình per-analyte/level/device/lot (bật/tắt quy tắc).
+
+PUT /api/qc/points/:id/rca → cập nhật root_cause/corrective_action/conclusion.
+
+POST /api/reports/export → xuất PDF (LJ chart + bảng vi phạm + thống kê).
+
+8) Chiến lược caching (TanStack Query v5)
+
+Query-keys chuẩn:
+['rule_settings'], ['westgard_config'], ['qc_limits', { analyte, level, instrument, lot }],
+['qc_points', { analyte, level, instrument, lot, from, to }], ['qc_points.infinite', {...}], ['reports', { scope }].
+
+TTL: rule_settings 12h; westgard_config 6h; qc_limits 24h; qc_points 30–60s (monitor, có thể refetchInterval 60s khi màn đang mở).
+
+Prefetch + SSR/Hydration: prefetch westgard_config, qc_limits hiện hành, trang đầu qc_points.
+
+Placeholder khi đổi filter: dùng placeholderData/keepPreviousData helper (v5 đã thay thế keepPreviousData). 
+TanStack
+
+Persistence: persistQueryClient (localStorage) với maxAge=24h; đặt gcTime ≥ 24h để cache không bị dọn sớm. 
+TanStack
++1
+
+9) Database schema (Google Sheets)
+
+Mỗi sheet = một bảng; giữ nguyên các sheet bạn đang có, chỉ bổ sung cho đầy đủ. Kiểu dữ liệu ở đây là “mục đích sử dụng”; trên Sheets lưu dưới dạng text/number/boolean.
+
+9.1. Master data
+
+tests
+
+test_id (Text, PK) — mã xét nghiệm
+
+test_name (Text) — tên (Glucose, GGT, …)
+
+unit (Text) — đơn vị (mg/dL, U/L, …)
+
+is_active (Boolean)
+
+devices
+
+device_id (Text, PK), device_name (Text), serial_number (Text)
+
+qc_lots (thông tin lô QC – tham khảo hãng & theo dõi HSD)
+
+lot_id (Text, PK), test_id (FK→tests), level (L1/L2/L3), lot_number (Text), expiry_date (Date)
+
+mean_mfg (Number, tùy chọn), sd_mfg (Number, tùy chọn)
+
+9.2. Cấu hình & giới hạn
+
+westgard_config (cấu hình rule per-analyte/level/device/lot)
+
+Khóa định danh: analyte, level, instrument_id, (tùy chọn lot_id)
+
+Tham số chính:
+
+qc_levels_per_run (Number)
+
+profile (strict/relaxed/custom)
+
+Bật/tắt rule cổ điển: enable_1_3s_reject, enable_2_2s_within_run_reject, enable_2_2s_across_runs_reject, enable_R_4s_within_run_reject, enable_4_1s_reject, enable_10x_reject, enable_1_2s_warning
+
+Bổ sung N=3 & extension: enable_2of3_2s_reject, enable_3_1s_reject, enable_6x_reject, enable_9x_reject, enable_7T_reject
+
+CUSUM (tùy chọn): enable_cusum, cusum_K (0.5 mặc định), cusum_H (4.0), n_per_run (2/3/4)
+
+qc_limits (giới hạn đã lock theo lô; dùng để tính z)
+
+Khóa: analyte, level, instrument_id, lot_id
+
+mean_lab, sd_lab, source_mean_sd (lab/mfg/peer), date_established, is_locked, lock_date
+
+Dải giới hạn: limit_1s_lower/upper, limit_2s_lower/upper, limit_3s_lower/upper
+
+Thiết lập từ ≥20 kết quả nội bộ (≥10 ngày) rồi khóa, không cập nhật theo ngày. 
+Westgard QC
+
+rule_settings (từ điển quy tắc để hiển thị/seed)
+
+rule_code (Text, PK: 1_3s, 2_2s_across, 2_2s_within, R_4s, 4_1s, 10x, 2of3_2s, 3_1s, 6x, 9x, 7T …)
+
+rule_name (Text), description (Text), is_active (Boolean), is_extension (Boolean), default_enabled (Boolean), severity (warning/reject), category (westgard/extension)
+
+9.3. Vận hành & sự kiện
+
+qc_points (điểm QC để vẽ LJ & check rules)
+
+timestamp (DateTime), run_id (Text), shift (Text), analyte (Text), level (L1/L2/L3), instrument_id (Text), lot_id (Text)
+
+value (Number), z (Number), status (in-control/warning/reject)
+
+violations_json (Text, mảng rule vi phạm)
+
+Hiển thị theo mức/cặp: violations_matrix_json (JSON: {L1:[…], L2:[…], pairs:{'1-2':[...]} })
+
+Xu hướng bổ trợ: shift_flag (Boolean), trend_flag (Boolean), cusum_pos (Number), cusum_neg (Number)
+
+RCA: root_cause (Text), corrective_action (Text), conclusion (Text)
+
+operator (Text), comment (Text)
+
+violations (sự kiện vi phạm “kết dính” nhiều điểm)
+
+violation_id (Text, PK), rule_code (Text), analyte, level, instrument_id, lot_id
+
+detection_date (DateTime), involved_result_ids (Text, CSV id điểm), status (new/resolved)
+
+corrective_action, action_user_id, resolved_at
+
+users, audit_logs
+
+users: user_id, username, password_hash, full_name, role, created_at
+
+audit_logs: thời điểm, người thực hiện, hành động (create/update/delete), bảng/khóa, trước/sau (để truy vết)
+
+10) Màn hình & UX chính
+
+QC Monitor: chọn analyte/level/device/lot + khoảng ngày; overlay 1/2/3 mức; hiển thị badge vi phạm theo mức/cặp (1/2/3 và 1-2/2-3/1-3).
+
+Cấu hình rule: preset strict/relaxed; toggle từng rule (cổ điển + N=3 + 7T); CUSUM.
+
+Lot limits: thiết lập/lock; hiển thị mean/SD/nguồn; nút “Establish (≥20)”.
+
+Nhập & RCA: bảng điểm trong ngày; cờ SHIFT/TREND/CUSUM; nguyên nhân/hành động/kết luận; chốt “Accept/Reject run”.
+
+Báo cáo: PDF theo ngày/tháng/máy/xét nghiệm; thống kê rule (1₍3s₎/2₍2s₎/R₍4s₎/4₍1s₎/10x/2of3_2s/3_1s/6x/9x/7T), phân loại random vs systematic.
+
+11) Triển khai & vận hành
+
+Migration an toàn: chỉ thêm cột vào westgard_config, qc_points; tạo rule_settings nếu chưa có; seed 2of3_2s, 3_1s, 6x, 9x, 7T (extension=TRUE).
+
+Kiểm thử chấp nhận:
+
+R₍4s₎ within-run: L1=−2SD & L2=+2SD (cùng run) → reject; across-runs không xét. 
+Westgard QC
+
+2₍2s₎ across: 2 lần liên tiếp cùng mức, cùng phía ≥2SD → reject. 
+Westgard QC
+
+4₍1s₎: 4 điểm liên tiếp >1SD cùng phía → reject; 10x tương tự 10 điểm cùng phía. 
+Westgard QC
+
+1₍2s₎: chỉ warning khi bật. 
+Westgard QC
+
+Thiết lập giới hạn: xác nhận yêu cầu ≥20 kết quả/≥10 ngày trước khi lock. 
+Westgard QC
+
+Hiệu năng FE: dùng chiến lược caching mục (8) – placeholderData khi đổi filter, persist 24h, invalidate theo key sau mutation. 
+TanStack
++1
+
+Tài liệu tham khảo chính
+
+Westgard QC – “Westgard Rules” (định nghĩa 1₍3s₎, 2₍2s₎, R₍4s₎ chỉ within-run, 4₍1s₎, 10x; biến thể 8x/12x; vai trò 1₍2s₎ là warning). 
+Westgard QC
+
+Levey–Jennings & thiết lập giới hạn: cần ≥20 phép đo nội bộ qua ≥10 ngày để tính mean/SD trước khi lập biểu đồ/áp quy tắc. 
+Westgard QC
+
+Sigma Rules: chọn bộ quy tắc theo năng lực phương pháp (4σ/5σ/6σ). 
+Westgard QC
+
+CLSI C24 Ed.4: nguyên tắc lập kế hoạch QC, thiết lập mục tiêu/SD, tần suất QC, phục hồi sau out-of-control. 
+CLSI
++1
+
+TanStack Query v5: migration (placeholderData thay keepPreviousData), persistQueryClient và yêu cầu gcTime ≥ maxAge. 
+TanStack
++1
