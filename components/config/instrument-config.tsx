@@ -1,14 +1,32 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -23,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Trash2, Edit, Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
+// Định nghĩa kiểu dữ liệu cho một thiết bị
 interface Instrument {
   id: string
   name: string
@@ -37,10 +56,13 @@ interface Instrument {
   notes: string
 }
 
+// Component chính cho cấu hình thiết bị
 export function InstrumentConfig() {
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingInstrument, setEditingInstrument] = useState<Instrument | null>(null)
+  const [editingInstrument, setEditingInstrument] = useState<Instrument | null>(
+    null
+  )
   const [formData, setFormData] = useState({
     name: "",
     model: "",
@@ -55,26 +77,31 @@ export function InstrumentConfig() {
   })
   const { toast } = useToast()
 
+  // Fetch dữ liệu thiết bị khi component được mount
   useEffect(() => {
     fetchInstruments()
   }, [])
 
+  // Hàm fetch dữ liệu thiết bị từ API
   const fetchInstruments = async () => {
     try {
       const response = await fetch("/api/config/instruments")
       if (response.ok) {
         const data = await response.json()
         setInstruments(data)
+      } else {
+        throw new Error("Failed to fetch instruments")
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to fetch instruments",
+        title: "Lỗi",
+        description: "Không thể tải danh sách thiết bị.",
         variant: "destructive",
       })
     }
   }
 
+  // Xử lý việc submit form (thêm mới hoặc cập nhật)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -84,29 +111,40 @@ export function InstrumentConfig() {
     }
 
     try {
-      const response = await fetch("/api/config/instruments", {
-        method: editingInstrument ? "PUT" : "POST",
+      const url = editingInstrument
+        ? `/api/config/instruments/${editingInstrument.id}`
+        : "/api/config/instruments"
+      const method = editingInstrument ? "PUT" : "POST"
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(instrumentData),
       })
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: `Instrument ${editingInstrument ? "updated" : "created"} successfully`,
+          title: "Thành công",
+          description: `Thiết bị đã được ${
+            editingInstrument ? "cập nhật" : "tạo"
+          } thành công.`,
         })
         fetchInstruments()
         resetForm()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to save instrument")
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to save instrument",
+        title: "Lỗi",
+        description: error.message || "Không thể lưu thiết bị.",
         variant: "destructive",
       })
     }
   }
 
+  // Reset form và đóng dialog
   const resetForm = () => {
     setFormData({
       name: "",
@@ -124,25 +162,21 @@ export function InstrumentConfig() {
     setIsDialogOpen(false)
   }
 
+  // Chuẩn bị form để chỉnh sửa
   const handleEdit = (instrument: Instrument) => {
     setEditingInstrument(instrument)
     setFormData({
-      name: instrument.name,
-      model: instrument.model,
-      serialNumber: instrument.serialNumber,
-      manufacturer: instrument.manufacturer,
-      location: instrument.location,
-      status: instrument.status,
-      installDate: instrument.installDate,
-      lastCalibration: instrument.lastCalibration,
-      nextCalibration: instrument.nextCalibration,
-      notes: instrument.notes,
+      ...instrument,
+      installDate: instrument.installDate.split("T")[0], // Định dạng lại ngày
+      lastCalibration: instrument.lastCalibration.split("T")[0],
+      nextCalibration: instrument.nextCalibration.split("T")[0],
     })
     setIsDialogOpen(true)
   }
 
+  // Xử lý việc xóa thiết bị
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this instrument?")) return
+    if (!confirm("Bạn có chắc chắn muốn xóa thiết bị này?")) return
 
     try {
       const response = await fetch(`/api/config/instruments/${id}`, {
@@ -151,21 +185,27 @@ export function InstrumentConfig() {
 
       if (response.ok) {
         toast({
-          title: "Success",
-          description: "Instrument deleted successfully",
+          title: "Thành công",
+          description: "Đã xóa thiết bị thành công.",
         })
         fetchInstruments()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to delete instrument")
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to delete instrument",
+        title: "Lỗi",
+        description: error.message || "Không thể xóa thiết bị.",
         variant: "destructive",
       })
     }
   }
 
-  const getStatusColor = (status: string) => {
+  // Lấy màu cho trạng thái
+  const getStatusBadgeVariant = (
+    status: "active" | "maintenance" | "inactive"
+  ) => {
     switch (status) {
       case "active":
         return "default"
@@ -174,7 +214,7 @@ export function InstrumentConfig() {
       case "inactive":
         return "destructive"
       default:
-        return "secondary"
+        return "outline"
     }
   }
 
@@ -183,132 +223,176 @@ export function InstrumentConfig() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Instrument Configuration</CardTitle>
-            <CardDescription>Manage laboratory instruments and their maintenance schedules</CardDescription>
+            <CardTitle>Cấu Hình Thiết Bị</CardTitle>
+            <CardDescription>
+              Quản lý các thiết bị xét nghiệm và lịch trình bảo trì của chúng.
+            </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => resetForm()}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Instrument
+                Thêm Thiết Bị
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>{editingInstrument ? "Edit Instrument" : "Add New Instrument"}</DialogTitle>
-                <DialogDescription>Configure instrument details and maintenance information</DialogDescription>
+                <DialogTitle>
+                  {editingInstrument ? "Chỉnh Sửa Thiết Bị" : "Thêm Thiết Bị Mới"}
+                </DialogTitle>
+                <DialogDescription>
+                  Điền thông tin chi tiết và thông tin bảo trì của thiết bị.
+                </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Instrument Name</Label>
+              <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Tên Thiết Bị</Label>
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="Vd: Cobas 8000"
                       required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="model">Model</Label>
                     <Input
                       id="model"
                       value={formData.model}
-                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, model: e.target.value })
+                      }
+                      placeholder="Vd: c702"
                       required
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="serialNumber">Serial Number</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="serialNumber">Số Sê-ri</Label>
                     <Input
                       id="serialNumber"
                       value={formData.serialNumber}
-                      onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, serialNumber: e.target.value })
+                      }
+                      placeholder="Vd: 12345-XYZ"
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="manufacturer">Manufacturer</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="manufacturer">Nhà Sản Xuất</Label>
                     <Input
                       id="manufacturer"
                       value={formData.manufacturer}
-                      onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, manufacturer: e.target.value })
+                      }
+                      placeholder="Vd: Roche Diagnostics"
                       required
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="location">Location</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Vị Trí</Label>
                     <Input
                       id="location"
                       value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: e.target.value })
+                      }
+                      placeholder="Vd: Phòng Hóa sinh"
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="status">Status</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Trạng Thái</Label>
                     <Select
                       value={formData.status}
-                      onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                      onValueChange={(value: any) =>
+                        setFormData({ ...formData, status: value })
+                      }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="active">Hoạt động</SelectItem>
+                        <SelectItem value="maintenance">Bảo trì</SelectItem>
+                        <SelectItem value="inactive">Vô hiệu</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="installDate">Install Date</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="installDate">Ngày Cài Đặt</Label>
                     <Input
                       id="installDate"
                       type="date"
                       value={formData.installDate}
-                      onChange={(e) => setFormData({ ...formData, installDate: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, installDate: e.target.value })
+                      }
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="lastCalibration">Last Calibration</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastCalibration">Lần Hiệu Chuẩn Cuối</Label>
                     <Input
                       id="lastCalibration"
                       type="date"
                       value={formData.lastCalibration}
-                      onChange={(e) => setFormData({ ...formData, lastCalibration: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          lastCalibration: e.target.value,
+                        })
+                      }
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="nextCalibration">Next Calibration</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="nextCalibration">Lần Hiệu Chuẩn Kế Tiếp</Label>
                     <Input
                       id="nextCalibration"
                       type="date"
                       value={formData.nextCalibration}
-                      onChange={(e) => setFormData({ ...formData, nextCalibration: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          nextCalibration: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Ghi Chú</Label>
                   <Textarea
                     id="notes"
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    placeholder="Thêm ghi chú về thiết bị..."
                     rows={3}
                   />
                 </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancel
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => resetForm()}
+                  >
+                    Hủy
                   </Button>
-                  <Button type="submit">{editingInstrument ? "Update" : "Create"} Instrument</Button>
+                  <Button type="submit">
+                    {editingInstrument ? "Cập Nhật" : "Lưu"}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -316,43 +400,77 @@ export function InstrumentConfig() {
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Model</TableHead>
-              <TableHead>Serial Number</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Next Calibration</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {instruments.map((instrument) => (
-              <TableRow key={instrument.id}>
-                <TableCell className="font-medium">{instrument.name}</TableCell>
-                <TableCell>{instrument.model}</TableCell>
-                <TableCell>{instrument.serialNumber}</TableCell>
-                <TableCell>{instrument.location}</TableCell>
-                <TableCell>
-                  <Badge variant={getStatusColor(instrument.status)}>{instrument.status}</Badge>
-                </TableCell>
-                <TableCell>{instrument.nextCalibration || "Not set"}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(instrument)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDelete(instrument.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tên</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead>Số Sê-ri</TableHead>
+                <TableHead>Vị Trí</TableHead>
+                <TableHead>Trạng Thái</TableHead>
+                <TableHead>Hiệu Chuẩn Kế Tiếp</TableHead>
+                <TableHead className="text-right">Thao Tác</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {instruments.length > 0 ? (
+                instruments.map((instrument) => (
+                  <TableRow key={instrument.id}>
+                    <TableCell className="font-medium">
+                      {instrument.name}
+                    </TableCell>
+                    <TableCell>{instrument.model}</TableCell>
+                    <TableCell>{instrument.serialNumber}</TableCell>
+                    <TableCell>{instrument.location}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={getStatusBadgeVariant(instrument.status)}
+                        className="capitalize"
+                      >
+                        {instrument.status === "active"
+                          ? "Hoạt động"
+                          : instrument.status === "maintenance"
+                          ? "Bảo trì"
+                          : "Vô hiệu"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {instrument.nextCalibration
+                        ? new Date(
+                            instrument.nextCalibration
+                          ).toLocaleDateString()
+                        : "Chưa đặt"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(instrument)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(instrument.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center h-24">
+                    Không có dữ liệu thiết bị.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )

@@ -42,7 +42,7 @@ export function Header() {
             {hasRole("manager") && (
               <>
                 <Button variant="ghost" asChild>
-                  <Link href="/config">Cấu Hình</Link>
+                  <Link href="/configuration">Cấu Hình</Link>
                 </Button>
                 <Button variant="ghost" asChild>
                   <Link href="/lot-setup">Thiết Lập Lô</Link>

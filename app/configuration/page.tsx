@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AnalyteConfig } from "@/components/config/analyte-config"
 import { InstrumentConfig } from "@/components/config/instrument-config"
+import { QCLevelConfig } from "@/components/config/qc-level-config"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -591,15 +592,7 @@ export default function ConfigurationPage() {
           </TabsContent>
 
           <TabsContent value="qc-levels">
-            <Card>
-              <CardHeader>
-                <CardTitle>Cấu hình mức QC</CardTitle>
-                <CardDescription>Quản lý các mức QC và giá trị mục tiêu</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Cấu hình mức QC sẽ được triển khai trong giai đoạn tiếp theo.</p>
-              </CardContent>
-            </Card>
+            <QCLevelConfig />
           </TabsContent>
         </Tabs>
       </div>
