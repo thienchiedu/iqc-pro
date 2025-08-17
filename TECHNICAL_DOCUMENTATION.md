@@ -156,6 +156,20 @@ class StatisticalEngine {
 - Process capability indices (Cp, Cpk)
 - Outlier detection
 
+### 3.1. Coefficient of Variation (CV)
+
+The Coefficient of Variation (CV) is a standardized measure of dispersion of a probability distribution or frequency distribution. It is often expressed as a percentage, and is defined as the ratio of the standard deviation to the mean.
+
+**Formula:**
+
+`CV = (Standard Deviation / Mean) * 100%`
+
+**Use in QC:**
+
+*   **Comparing Precision:** CV is used to compare the precision of different analytes, methods, or instruments, especially when their means are different. A lower CV indicates higher precision.
+*   **Quality Control Rules:** It helps in setting up QC rules. For instance, a process with a consistently low CV might require less stringent QC rules.
+*   **Sigma Metrics:** CV is a critical component in the calculation of Sigma metrics, which provides a long-term measure of process performance. The formula is: `Sigma = (TEa - Bias) / CV`, where TEa is the Total Allowable Error.
+
 ### 4. Westgard Rules Engine
 
 #### WestgardRulesEngine (`lib/westgard-rules.ts`)

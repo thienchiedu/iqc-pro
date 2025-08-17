@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,47 +19,66 @@ import { useToast } from "@/hooks/use-toast"
 import { Settings, Download, Upload, Save, AlertTriangle } from "lucide-react"
 import { BackButton } from "@/components/ui/back-button"
 
+// Define the structure of the settings object
+interface SystemSettings {
+  labName: string
+  timezone: string
+  dateFormat: "YYYY-MM-DD" | "MM/DD/YYYY" | "DD/MM/YYYY"
+  autoBackup: boolean
+  emailNotifications: boolean
+  smsNotifications: boolean
+  defaultWestgardRules: string[]
+  retentionPeriod: string
+}
+
 export default function ConfigurationPage() {
-  const [systemSettings, setSystemSettings] = useState({
-    labName: "C-Lab Quality Control",
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>({
+    labName: "",
     timezone: "UTC",
     dateFormat: "YYYY-MM-DD",
-    autoBackup: true,
-    emailNotifications: true,
+    autoBackup: false,
+    emailNotifications: false,
     smsNotifications: false,
-    defaultWestgardRules: ["1-3s", "2-2s", "4-1s", "10-x"],
-    retentionPeriod: "365",
+    defaultWestgardRules: [],
+    retentionPeriod: "365"
   })
-
-  const [westgardRules, setWestgardRules] = useState({
-    enable_1_2s_warning: true,
-    enable_1_3s_reject: true,
-    enable_2_2s_within_run_reject: true,
-    enable_2_2s_across_runs_reject: true,
-    enable_R_4s_within_run_reject: true,
-    enable_4_1s_reject: true,
-    enable_10x_reject: true,
-    // New rules - all OFF by default per specification
-    enable_2of3_2s_reject: false,
-    enable_3_1s_reject: false,
-    enable_6x_reject: false,
-    enable_9x_reject: false,
-    enable_7T_reject: false,
-    n_per_run: 2,
-    enable_cusum: false,
-    cusum_K: 0.5,
-    cusum_H: 4.0,
-    show_rule_extensions: false,
-  })
-
+  const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
+  // Fetch system settings from the API when the component mounts
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch("/api/config/system")
+        if (response.ok) {
+          const data = await response.json()
+          setSystemSettings(data)
+        } else {
+          throw new Error("Failed to fetch settings")
+        }
+      } catch (error) {
+        toast({
+          title: "Lỗi tải cài đặt",
+          description: "Không thể tải cài đặt hệ thống. Vui lòng thử lại.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSettings()
+  }, [toast])
+
   const handleSaveSettings = async () => {
+    if (!systemSettings) return
+
     try {
       const response = await fetch("/api/config/system", {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...systemSettings, westgardRules }),
+        body: JSON.stringify(systemSettings),
       })
 
       if (response.ok) {
@@ -67,11 +86,14 @@ export default function ConfigurationPage() {
           title: "Thành công",
           description: "Cài đặt hệ thống đã được lưu thành công",
         })
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.details?.message || "Failed to save settings")
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: "Không thể lưu cài đặt",
+        description: `Không thể lưu cài đặt: ${error.message}`,
         variant: "destructive",
       })
     }
@@ -135,6 +157,14 @@ export default function ConfigurationPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 flex justify-center items-center h-96">
+        <p>Loading system configuration...</p>
+      </div>
+    )
+  }
+
   return (
     <ProtectedRoute requiredRole="manager">
       <div className="container mx-auto py-6">
@@ -160,12 +190,11 @@ export default function ConfigurationPage() {
         </div>
 
         <Tabs defaultValue="system" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="system">Cài đặt hệ thống</TabsTrigger>
             <TabsTrigger value="westgard">Quy tắc Westgard</TabsTrigger>
             <TabsTrigger value="analytes">Analyte</TabsTrigger>
             <TabsTrigger value="instruments">Thiết bị</TabsTrigger>
-            <TabsTrigger value="qc-levels">Mức QC</TabsTrigger>
           </TabsList>
 
           <TabsContent value="system">
@@ -210,7 +239,7 @@ export default function ConfigurationPage() {
                       <Label htmlFor="dateFormat">Date Format</Label>
                       <Select
                         value={systemSettings.dateFormat}
-                        onValueChange={(value) => setSystemSettings({ ...systemSettings, dateFormat: value })}
+                        onValueChange={(value: any) => setSystemSettings({ ...systemSettings, dateFormat: value })}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -312,271 +341,33 @@ export default function ConfigurationPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5" />
-                  Cấu hình quy tắc Westgard
+                  Default Westgard Rules
                 </CardTitle>
-                <CardDescription>Cấu hình các quy tắc Westgard và thông số kiểm soát chất lượng</CardDescription>
+                <CardDescription>Select the default Westgard rules to be applied to new QC lots.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Quy tắc cơ bản</h3>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_1_2s_warning">1₂s (Cảnh báo)</Label>
-                        <p className="text-sm text-muted-foreground">Điểm vượt ±2SD</p>
-                      </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {["1-3s", "2-2s", "R-4s", "4-1s", "8-x", "10-x", "2of3-2s", "12-x"].map((rule) => (
+                    <div key={rule} className="flex items-center space-x-2">
                       <Switch
-                        id="enable_1_2s_warning"
-                        checked={westgardRules.enable_1_2s_warning}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_1_2s_warning: checked })
-                        }
+                        id={`rule-${rule}`}
+                        checked={systemSettings.defaultWestgardRules.includes(rule)}
+                        onCheckedChange={(checked) => {
+                          const currentRules = systemSettings.defaultWestgardRules
+                          const newRules = checked
+                            ? [...currentRules, rule]
+                            : currentRules.filter((r) => r !== rule)
+                          setSystemSettings({ ...systemSettings, defaultWestgardRules: newRules })
+                        }}
                       />
+                      <Label htmlFor={`rule-${rule}`}>{rule}</Label>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_1_3s_reject">1₃s (Từ chối)</Label>
-                        <p className="text-sm text-muted-foreground">Điểm vượt ±3SD</p>
-                      </div>
-                      <Switch
-                        id="enable_1_3s_reject"
-                        checked={westgardRules.enable_1_3s_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_1_3s_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_2_2s_within_run_reject">2₂s (Trong run)</Label>
-                        <p className="text-sm text-muted-foreground">2 điểm cùng phía ≥2SD trong run</p>
-                      </div>
-                      <Switch
-                        id="enable_2_2s_within_run_reject"
-                        checked={westgardRules.enable_2_2s_within_run_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_2_2s_within_run_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_2_2s_across_runs_reject">2₂s (Giữa run)</Label>
-                        <p className="text-sm text-muted-foreground">2 điểm liên tiếp cùng phía ≥2SD</p>
-                      </div>
-                      <Switch
-                        id="enable_2_2s_across_runs_reject"
-                        checked={westgardRules.enable_2_2s_across_runs_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_2_2s_across_runs_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_R_4s_within_run_reject">R₄s</Label>
-                        <p className="text-sm text-muted-foreground">Khoảng cách ≥4SD trong run</p>
-                      </div>
-                      <Switch
-                        id="enable_R_4s_within_run_reject"
-                        checked={westgardRules.enable_R_4s_within_run_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_R_4s_within_run_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_4_1s_reject">4₁s</Label>
-                        <p className="text-sm text-muted-foreground">4 điểm liên tiếp &gt;1SD cùng phía</p>
-                      </div>
-                      <Switch
-                        id="enable_4_1s_reject"
-                        checked={westgardRules.enable_4_1s_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_4_1s_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_10x_reject">10x</Label>
-                        <p className="text-sm text-muted-foreground">10 điểm liên tiếp cùng phía mean</p>
-                      </div>
-                      <Switch
-                        id="enable_10x_reject"
-                        checked={westgardRules.enable_10x_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_10x_reject: checked })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">Quy tắc mở rộng (N=3)</h3>
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">Các quy tắc này mặc định TẮT để đảm bảo tương thích</p>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_2of3_2s_reject">2of3₂s</Label>
-                        <p className="text-sm text-muted-foreground">2/3 điểm liên tiếp ≥2SD cùng phía</p>
-                      </div>
-                      <Switch
-                        id="enable_2of3_2s_reject"
-                        checked={westgardRules.enable_2of3_2s_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_2of3_2s_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_3_1s_reject">3₁s</Label>
-                        <p className="text-sm text-muted-foreground">3 điểm liên tiếp &gt;1SD cùng phía</p>
-                      </div>
-                      <Switch
-                        id="enable_3_1s_reject"
-                        checked={westgardRules.enable_3_1s_reject}
-                        onCheckedChange={(checked) =>
-                          setWestgardRules({ ...westgardRules, enable_3_1s_reject: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_6x_reject">6x</Label>
-                        <p className="text-sm text-muted-foreground">6 điểm liên tiếp cùng phía mean</p>
-                      </div>
-                      <Switch
-                        id="enable_6x_reject"
-                        checked={westgardRules.enable_6x_reject}
-                        onCheckedChange={(checked) => setWestgardRules({ ...westgardRules, enable_6x_reject: checked })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_9x_reject">9x</Label>
-                        <p className="text-sm text-muted-foreground">9 điểm liên tiếp cùng phía mean</p>
-                      </div>
-                      <Switch
-                        id="enable_9x_reject"
-                        checked={westgardRules.enable_9x_reject}
-                        onCheckedChange={(checked) => setWestgardRules({ ...westgardRules, enable_9x_reject: checked })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="enable_7T_reject">7T (Trend)</Label>
-                        <p className="text-sm text-muted-foreground">7 điểm xu hướng tăng/giảm</p>
-                      </div>
-                      <Switch
-                        id="enable_7T_reject"
-                        checked={westgardRules.enable_7T_reject}
-                        onCheckedChange={(checked) => setWestgardRules({ ...westgardRules, enable_7T_reject: checked })}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <h4 className="font-semibold">Thông số cấu hình</h4>
-
-                      <div>
-                        <Label htmlFor="n_per_run">Số mức QC mỗi run (N)</Label>
-                        <Select
-                          value={westgardRules.n_per_run.toString()}
-                          onValueChange={(value) =>
-                            setWestgardRules({ ...westgardRules, n_per_run: Number.parseInt(value) })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="2">N=2</SelectItem>
-                            <SelectItem value="3">N=3</SelectItem>
-                            <SelectItem value="4">N=4</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="enable_cusum">CUSUM</Label>
-                          <p className="text-sm text-muted-foreground">Phát hiện shift nhỏ</p>
-                        </div>
-                        <Switch
-                          id="enable_cusum"
-                          checked={westgardRules.enable_cusum}
-                          onCheckedChange={(checked) => setWestgardRules({ ...westgardRules, enable_cusum: checked })}
-                        />
-                      </div>
-
-                      {westgardRules.enable_cusum && (
-                        <div className="grid grid-cols-2 gap-4 pl-4">
-                          <div>
-                            <Label htmlFor="cusum_K">K (Sensitivity)</Label>
-                            <Input
-                              id="cusum_K"
-                              type="number"
-                              step="0.1"
-                              value={westgardRules.cusum_K}
-                              onChange={(e) =>
-                                setWestgardRules({ ...westgardRules, cusum_K: Number.parseFloat(e.target.value) })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="cusum_H">H (Decision limit)</Label>
-                            <Input
-                              id="cusum_H"
-                              type="number"
-                              step="0.1"
-                              value={westgardRules.cusum_H}
-                              onChange={(e) =>
-                                setWestgardRules({ ...westgardRules, cusum_H: Number.parseFloat(e.target.value) })
-                              }
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="show_rule_extensions">Hiển thị quy tắc mở rộng</Label>
-                          <p className="text-sm text-muted-foreground">Hiển thị các quy tắc không chuẩn Westgard</p>
-                        </div>
-                        <Switch
-                          id="show_rule_extensions"
-                          checked={westgardRules.show_rule_extensions}
-                          onCheckedChange={(checked) =>
-                            setWestgardRules({ ...westgardRules, show_rule_extensions: checked })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-
                 <div className="flex justify-end">
                   <Button onClick={handleSaveSettings}>
                     <Save className="h-4 w-4 mr-2" />
-                    Lưu cài đặt
+                    Save Rules
                   </Button>
                 </div>
               </CardContent>

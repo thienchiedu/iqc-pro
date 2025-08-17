@@ -818,6 +818,113 @@ export class GoogleSheetsService {
     ]
     await this.appendSheet("qc_lots", [row])
   }
+
+  // System Settings operations
+  async getSystemSettings(): Promise<any | null> {
+    const data = await this.readSheet("system_config", "A1:Z1000"); // Read the first row
+    if (data.length < 2) return null; // Headers + at least one data row
+
+    const headers = data[0];
+    const values = data[1];
+    const settings: { [key: string]: any } = {};
+
+    headers.forEach((header, index) => {
+      const value = values[index];
+      if (value && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
+        settings[header] = value.toLowerCase() === 'true';
+      } else {
+        settings[header] = value;
+      }
+    });
+    return settings;
+  }
+
+  async updateSystemSettings(settings: { [key: string]: any }): Promise<void> {
+    const headers = (await this.readSheet("system_config", "A1:Z1"))[0];
+    if (!headers) {
+      throw new Error("System config sheet or headers not found.");
+    }
+    const orderedValues = headers.map(header => settings[header] ?? "");
+    // Write to the second row (A2:Z2) to avoid overwriting headers
+    await this.writeSheet("system_config", [orderedValues], `A2:${String.fromCharCode(65 + headers.length - 1)}2`);
+  }
+
+  // QC Levels operations
+  async getQCLevels(): Promise<any[]> {
+    const data = await this.readSheet("qc_levels");
+    if (data.length < 2) return [];
+    const headers = data[0];
+    const rows = data.slice(1);
+    return rows.map(row => {
+      const level: { [key: string]: any } = {};
+      headers.forEach((header, index) => {
+        level[header] = row[index];
+      });
+      return level;
+    });
+  }
+
+  async addQCLevel(level: any): Promise<void> {
+    const headers = (await this.readSheet("qc_levels", "A1:Z1"))[0];
+    if (!headers) throw new Error("QC Levels sheet headers not found.");
+    const row = headers.map(header => level[header] ?? "");
+    await this.appendSheet("qc_levels", [row]);
+  }
+
+  async updateQCLevel(level: any): Promise<void> {
+    const data = await this.readSheet("qc_levels");
+    if (data.length < 2) throw new Error("QC Levels not found.");
+    const headers = data[0];
+    const idIndex = headers.indexOf("id");
+    if (idIndex === -1) throw new Error("'id' column not found in qc_levels sheet.");
+
+    const rowIndex = data.slice(1).findIndex(row => row[idIndex] === level.id);
+    if (rowIndex === -1) throw new Error(`QC Level with ID ${level.id} not found.`);
+
+    const currentRow = data[rowIndex + 1];
+    const updatedRow = headers.map((header, index) => level[header] ?? currentRow[index]);
+
+    const range = `qc_levels!A${rowIndex + 2}:${String.fromCharCode(65 + headers.length - 1)}${rowIndex + 2}`;
+    await this.writeSheet("qc_levels", [updatedRow], range);
+  }
+
+  async deleteQCLevel(id: string): Promise<void> {
+    // This performs a soft delete by marking the level as inactive.
+    const data = await this.readSheet("qc_levels");
+    if (data.length < 2) return;
+    const headers = data[0];
+    const idIndex = headers.indexOf("id");
+    const activeIndex = headers.indexOf("is_active");
+    if (idIndex === -1 || activeIndex === -1) throw new Error("'id' or 'is_active' column not found in qc_levels");
+
+    const rowIndex = data.slice(1).findIndex(row => row[idIndex] === id);
+    if (rowIndex === -1) return; // Not found, do nothing
+
+    const range = `qc_levels!${String.fromCharCode(65 + activeIndex)}${rowIndex + 2}`;
+    await this.writeSheet("qc_levels", [["FALSE"]], range);
+  }
+
+  // Analyte Categories
+  async getAnalyteCategories(): Promise<string[]> {
+    const data = await this.readSheet("analyte_categories", "A:A");
+    return data.flat().filter(cat => cat); // Flatten and remove empty values
+  }
+
+  // Batch operations for import
+  async batchUpdateAnalytes(analytes: any[]): Promise<void> {
+    // This clears the sheet and writes the new data.
+    const headers = ["id", "name", "unit", "category", "normalRange.min", "normalRange.max", "criticalRange.min", "criticalRange.max", "decimalPlaces", "isActive"];
+    const values = analytes.map(a => [a.id, a.name, a.unit, a.category, a.normalRange.min, a.normalRange.max, a.criticalRange.min, a.criticalRange.max, a.decimalPlaces, a.isActive]);
+    const data = [headers, ...values];
+    await this.writeSheet("analytes", data);
+  }
+
+  async batchUpdateInstruments(instruments: any[]): Promise<void> {
+    const headers = ["id", "name", "model", "serialNumber", "manufacturer", "location", "status", "installDate", "lastCalibration", "nextCalibration", "notes"];
+    const values = instruments.map(i => [i.id, i.name, i.model, i.serialNumber, i.manufacturer, i.location, i.status, i.installDate, i.lastCalibration, i.nextCalibration, i.notes]);
+    const data = [headers, ...values];
+    await this.writeSheet("instruments", data);
+  }
 }
 
 // Singleton instance

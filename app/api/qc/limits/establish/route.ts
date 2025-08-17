@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSheetsService } from "@/lib/google-sheets"
+import { StatisticalEngine } from "@/lib/statistical-engine"
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,12 +39,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate mean and standard deviation
+    // Calculate mean, standard deviation, and CV
     const values = inControlPoints.map((p) => p.value)
-    const mean = values.reduce((sum, val) => sum + val, 0) / values.length
-
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (values.length - 1)
-    const sd = Math.sqrt(variance)
+    const stats = StatisticalEngine.calculateBasicStats(values)
+    const { mean, standardDeviation: sd, cv } = stats
 
     // Calculate control limits
     const limits = {
@@ -53,6 +52,7 @@ export async function POST(request: NextRequest) {
       lot_id,
       mean_lab: mean,
       sd_lab: sd,
+      cv_lab: cv,
       source_mean_sd: "lab" as const,
       date_established: new Date().toISOString(),
       lock_date: "",
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       mean_lab: mean,
       sd_lab: sd,
+      cv_lab: cv,
       limits,
       pointsUsed: inControlPoints.length,
       message: "QC limits established successfully",

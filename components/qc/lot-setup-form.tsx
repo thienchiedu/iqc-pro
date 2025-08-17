@@ -30,6 +30,7 @@ interface LotStatus {
   canLock: boolean
   mean_lab?: number
   sd_lab?: number
+  cv_lab?: number
   limits?: any
 }
 
@@ -82,6 +83,7 @@ export function LotSetupForm() {
         canLock: hasLimits && !isLocked,
         mean_lab: hasLimits ? limitsData.limits[0]?.mean_lab : undefined,
         sd_lab: hasLimits ? limitsData.limits[0]?.sd_lab : undefined,
+        cv_lab: hasLimits ? limitsData.limits[0]?.cv_lab : undefined,
         limits: hasLimits ? limitsData.limits[0] : undefined,
       })
     } catch (error) {
@@ -335,6 +337,12 @@ export function LotSetupForm() {
                   <div>
                     <span className="text-muted-foreground">Độ Lệch Chuẩn Lab:</span>
                     <span className="ml-2 font-mono">{lotStatus.sd_lab?.toFixed(3)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">CV Lab (%):</span>
+                    <span className="ml-2 font-mono">
+                      {typeof lotStatus.cv_lab === 'number' ? `${lotStatus.cv_lab.toFixed(1)}%` : 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">±1SD:</span>

@@ -61,6 +61,7 @@ interface Analyte {
 // Component chính cho cấu hình analyte
 export function AnalyteConfig() {
   const [analytes, setAnalytes] = useState<Analyte[]>([])
+  const [categories, setCategories] = useState<string[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingAnalyte, setEditingAnalyte] = useState<Analyte | null>(null)
   const [formData, setFormData] = useState({
@@ -75,12 +76,41 @@ export function AnalyteConfig() {
   })
   const { toast } = useToast()
 
-  // Fetch dữ liệu analytes khi component được mount
+  // Fetch initial data when component mounts
   useEffect(() => {
-    fetchAnalytes()
-  }, [])
+    const fetchInitialData = async () => {
+      try {
+        const [analytesRes, categoriesRes] = await Promise.all([
+          fetch("/api/config/analytes"),
+          fetch("/api/config/analyte-categories"),
+        ])
 
-  // Hàm fetch dữ liệu analytes từ API
+        if (analytesRes.ok) {
+          const data = await analytesRes.json()
+          setAnalytes(data)
+        } else {
+          throw new Error("Failed to fetch analytes")
+        }
+
+        if (categoriesRes.ok) {
+          const data = await categoriesRes.json()
+          setCategories(data)
+        } else {
+          throw new Error("Failed to fetch categories")
+        }
+      } catch (error) {
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải dữ liệu cấu hình ban đầu.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchInitialData()
+  }, [toast])
+
+  // Hàm fetch dữ liệu analytes từ API (để refresh sau khi thay đổi)
   const fetchAnalytes = async () => {
     try {
       const response = await fetch("/api/config/analytes")
@@ -284,11 +314,11 @@ export function AnalyteConfig() {
                       <SelectValue placeholder="Chọn một danh mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="chemistry">Hóa sinh</SelectItem>
-                      <SelectItem value="hematology">Huyết học</SelectItem>
-                      <SelectItem value="immunology">Miễn dịch</SelectItem>
-                      <SelectItem value="microbiology">Vi sinh</SelectItem>
-                      <SelectItem value="coagulation">Đông máu</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
